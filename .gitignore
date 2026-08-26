@@ -1,0 +1,12 @@
+# Personal data: tasks, projects, focus log and all local settings.
+# Never publish this.
+data.json
+
+node_modules/
+
+# Bundled Monet background (~1.1 MB). Re-fetch with:
+# curl -sL -A "Bot/1.0" -o background.jpg \
+#   "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Claude_Monet_-_Water_Lilies_-_1906%2C_Ryerson.jpg/1920px-Claude_Monet_-_Water_Lilies_-_1906%2C_Ryerson.jpg"
+background.jpg
+
+.DS_Store

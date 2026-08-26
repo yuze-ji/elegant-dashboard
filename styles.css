@@ -1,0 +1,1457 @@
+/* ============================================================
+   Elegant Dashboard
+   ============================================================ */
+
+.elegant-dashboard {
+  --ed-radius-sm: 6px;
+  --ed-radius-md: 10px;
+  --ed-radius-lg: 14px;
+  --ed-green-a: rgba(154, 208, 180, 0.12);
+  --ed-green-b: rgba(93, 167, 110, 0.06);
+  --ed-green-border: rgba(154, 208, 180, 0.25);
+  --ed-green-glow: rgba(93, 167, 110, 0.06);
+  --ed-heat-0: #e3e7e5;
+  --ed-heat-1: #c8aadc;
+  --ed-heat-2: #f3d98c;
+  --ed-heat-3: #f0a868;
+  --ed-heat-4: #e88e8e;
+
+  /* ---- liquid glass ---- */
+  --ed-glass-blur: 24px;
+  --ed-glass-base: rgba(255, 255, 255, 0.14);
+  --ed-glass-border: rgba(255, 255, 255, 0.4);
+  --ed-glass-sheen: rgba(255, 255, 255, 0.55);
+  --ed-glass-shadow: 0 10px 36px rgba(31, 60, 48, 0.16);
+  /* Nested surfaces sit on already-blurred glass, so they only need a wash. */
+  --ed-glass-inner: rgba(255, 255, 255, 0.42);
+
+  position: relative;
+  /* The inner wrapper scrolls, not this element, so .ed-bg stays put instead of
+     scrolling away with the content. */
+  overflow: hidden;
+  height: 100%;
+  padding: 0;
+}
+
+.theme-dark .elegant-dashboard {
+  --ed-green-a: rgba(130, 190, 160, 0.15);
+  --ed-green-b: rgba(65, 140, 90, 0.08);
+  --ed-green-border: rgba(130, 190, 160, 0.3);
+  --ed-green-glow: rgba(65, 140, 90, 0.08);
+  --ed-heat-0: #2c3230;
+
+  --ed-glass-base: rgba(16, 22, 20, 0.34);
+  --ed-glass-border: rgba(255, 255, 255, 0.16);
+  --ed-glass-sheen: rgba(255, 255, 255, 0.16);
+  --ed-glass-shadow: 0 10px 36px rgba(0, 0, 0, 0.4);
+  --ed-glass-inner: rgba(255, 255, 255, 0.08);
+}
+
+.ed-bg {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ed-scroll-root {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px 20px 40px;
+}
+
+/* Content stays centred while the scrollbar hugs the real edge. */
+.ed-navbar,
+.ed-modules {
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ed-modules {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ed-loading {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 24px;
+}
+
+/* ---------------------------------------------------------------- navbar */
+
+.ed-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  border-radius: var(--ed-radius-lg);
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+  border: 1px solid var(--ed-green-border);
+  box-shadow: 0 2px 8px var(--ed-green-glow);
+}
+
+.ed-navbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(135deg, var(--ed-green-a) 0%, var(--ed-green-b) 100%);
+  backdrop-filter: blur(calc(var(--ed-card-alpha, 1) * 10px));
+  opacity: var(--ed-card-alpha, 1);
+  transition: opacity 0.25s ease;
+}
+
+.ed-nav-links {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ed-nav-link {
+  color: var(--interactive-accent);
+  background: transparent;
+  border: 1px solid transparent;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9em;
+  padding: 6px 14px;
+  border-radius: var(--ed-radius-sm);
+  cursor: pointer;
+  opacity: 0.8;
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+
+.ed-nav-link:hover {
+  opacity: 1;
+  background: var(--background-modifier-hover);
+}
+
+.ed-nav-link.is-active {
+  opacity: 1;
+  font-weight: 700;
+  background: var(--background-primary);
+  border-color: var(--ed-green-border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.elegant-dashboard.is-glass .ed-nav-link.is-active {
+  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.theme-dark .elegant-dashboard.is-glass .ed-nav-link.is-active {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.ed-focus-chart {
+  width: 100%;
+  margin: 4px 0 2px;
+}
+
+.ed-focus-chart canvas {
+  display: block;
+  max-width: 100%;
+}
+
+/* Full-page task view: let the columns breathe instead of capping at 300px. */
+.ed-tasks-full .ed-task-list {
+  max-height: min(62vh, 720px);
+}
+
+.ed-project-card.is-done {
+  opacity: 0.62;
+}
+
+.ed-project-card.is-done .ed-project-name {
+  text-decoration: line-through;
+}
+
+.ed-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ed-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: var(--ed-radius-sm);
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.ed-icon-btn:hover {
+  color: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+}
+
+.ed-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.ed-lang-opt {
+  cursor: pointer;
+  font-size: 0.85em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+}
+
+.ed-lang-opt:hover {
+  color: var(--interactive-accent);
+}
+
+.ed-lang-opt.is-active {
+  font-weight: 700;
+  color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+
+.ed-lang-sep {
+  opacity: 0.3;
+  font-size: 0.8em;
+}
+
+/* ------------------------------------------------------------------ card */
+
+.ed-card {
+  position: relative;
+  /* Isolate so the ::before tint layer stays inside this card's stacking
+     context instead of slipping behind the dashboard background. */
+  isolation: isolate;
+  background: transparent;
+  border: 1px solid var(--ed-green-border);
+  border-radius: var(--ed-radius-lg);
+  padding: 20px 22px;
+  box-shadow: 0 8px 32px var(--ed-green-glow);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* The green glass tint lives on its own layer so --ed-card-alpha can fade it
+   out (down to fully transparent) without touching text or borders. */
+.ed-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(135deg, var(--ed-green-a) 0%, var(--ed-green-b) 100%);
+  opacity: var(--ed-card-alpha, 1);
+  transition: opacity 0.25s ease;
+}
+
+/* ============================================================
+   Liquid glass
+   The blur lives on the element itself (not the ::before tint layer) so the
+   frosted effect survives even when the green tint is dialled to zero.
+   ============================================================ */
+
+.elegant-dashboard.is-glass .ed-card,
+.elegant-dashboard.is-glass .ed-navbar,
+.elegant-dashboard.is-glass .ed-project-card {
+  background: var(--ed-glass-base);
+  -webkit-backdrop-filter: blur(var(--ed-glass-blur)) saturate(180%);
+  backdrop-filter: blur(var(--ed-glass-blur)) saturate(180%);
+  border: 1px solid var(--ed-glass-border);
+  box-shadow:
+    var(--ed-glass-shadow),
+    /* top specular edge — the highlight that reads as a glass bevel */
+    inset 0 1px 0 var(--ed-glass-sheen),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Diagonal sheen sweeping across the pane. */
+.elegant-dashboard.is-glass .ed-card::after,
+.elegant-dashboard.is-glass .ed-navbar::after,
+.elegant-dashboard.is-glass .ed-project-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.06) 32%,
+    transparent 55%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+}
+
+.theme-dark .elegant-dashboard.is-glass .ed-card::after,
+.theme-dark .elegant-dashboard.is-glass .ed-navbar::after,
+.theme-dark .elegant-dashboard.is-glass .ed-project-card::after {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.03) 32%,
+    transparent 55%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+}
+
+.elegant-dashboard.is-glass .ed-card:hover,
+.elegant-dashboard.is-glass .ed-project-card:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 14px 44px rgba(31, 60, 48, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.theme-dark .elegant-dashboard.is-glass .ed-card:hover,
+.theme-dark .elegant-dashboard.is-glass .ed-project-card:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 14px 44px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+/* Nested surfaces need their own wash, otherwise text sits straight on the
+   painting and becomes unreadable at full background opacity. */
+.elegant-dashboard.is-glass .ed-task-item,
+.elegant-dashboard.is-glass .ed-stat-cell,
+.elegant-dashboard.is-glass .ed-week-card,
+.elegant-dashboard.is-glass .ed-badge,
+.elegant-dashboard.is-glass .ed-tabs,
+.elegant-dashboard.is-glass .ed-lang,
+.elegant-dashboard.is-glass .ed-add-input,
+.elegant-dashboard.is-glass .ed-focus-input,
+.elegant-dashboard.is-glass .ed-add-section {
+  background: var(--ed-glass-inner);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.elegant-dashboard.is-glass .ed-task-list,
+.elegant-dashboard.is-glass .ed-plugin-list {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.theme-dark .elegant-dashboard.is-glass .ed-task-list,
+.theme-dark .elegant-dashboard.is-glass .ed-plugin-list {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.elegant-dashboard.is-glass .ed-mode-btn:not(.is-active) {
+  background: var(--ed-glass-inner);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ---- legibility on glass ----
+   A vivid backdrop washes out small muted text, so lift it: darker ink plus a
+   hairline halo that separates glyphs from whatever is behind the pane. */
+
+.elegant-dashboard.is-glass {
+  --ed-ink: #24352e;
+  --ed-ink-soft: #4a5f56;
+  --ed-halo: 0 1px 2px rgba(255, 255, 255, 0.75);
+}
+
+.theme-dark .elegant-dashboard.is-glass {
+  --ed-ink: #eaf2ee;
+  --ed-ink-soft: #b7c7c0;
+  --ed-halo: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.elegant-dashboard.is-glass .ed-recent-link,
+.elegant-dashboard.is-glass .ed-recent-time,
+.elegant-dashboard.is-glass .ed-plugin-name,
+.elegant-dashboard.is-glass .ed-plugin-version,
+.elegant-dashboard.is-glass .ed-task-text,
+.elegant-dashboard.is-glass .ed-project-name,
+.elegant-dashboard.is-glass .ed-project-status,
+.elegant-dashboard.is-glass .ed-stat-label,
+.elegant-dashboard.is-glass .ed-stat-caption,
+.elegant-dashboard.is-glass .ed-range,
+.elegant-dashboard.is-glass .ed-week-day,
+.elegant-dashboard.is-glass .ed-week-date,
+.elegant-dashboard.is-glass .ed-badge,
+.elegant-dashboard.is-glass .ed-cal-wk-label,
+.elegant-dashboard.is-glass .ed-wk-label {
+  color: var(--ed-ink-soft);
+  text-shadow: var(--ed-halo);
+}
+
+.elegant-dashboard.is-glass .ed-card-title,
+.elegant-dashboard.is-glass .ed-chart-title,
+.elegant-dashboard.is-glass .ed-focus-title,
+.elegant-dashboard.is-glass .ed-month-title,
+.elegant-dashboard.is-glass .ed-week-range,
+.elegant-dashboard.is-glass .ed-stat-num,
+.elegant-dashboard.is-glass .ed-stat-strong,
+.elegant-dashboard.is-glass .ed-nav-link,
+.elegant-dashboard.is-glass .ed-recent-link {
+  color: var(--ed-ink);
+  text-shadow: var(--ed-halo);
+  font-weight: 700;
+}
+
+.elegant-dashboard.is-glass .ed-recent-link:hover {
+  color: var(--interactive-accent);
+}
+
+.ed-card:hover {
+  border-color: rgba(93, 167, 110, 0.5);
+  box-shadow: 0 12px 40px rgba(93, 167, 110, 0.12);
+}
+
+.theme-dark .ed-card:hover {
+  border-color: rgba(130, 190, 160, 0.6);
+  box-shadow: 0 12px 40px rgba(65, 140, 90, 0.15);
+}
+
+.ed-card-title {
+  font-size: 1.05em;
+  font-weight: 700;
+  color: var(--interactive-accent);
+  margin-bottom: 14px;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+.ed-divider {
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin-bottom: 16px;
+}
+
+.ed-empty {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: 16px;
+}
+
+.ed-error {
+  color: var(--text-error);
+  font-size: 0.85em;
+}
+
+.ed-badges {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.ed-badge {
+  font-size: 0.78em;
+  color: var(--text-normal);
+  background: var(--background-secondary);
+  padding: 6px 13px;
+  border-radius: 20px;
+  border: 1px solid var(--background-modifier-border);
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------- tabs */
+
+.ed-tabs {
+  display: flex;
+  background: var(--background-secondary);
+  border-radius: var(--ed-radius-md);
+  padding: 3px;
+  gap: 2px;
+}
+
+.ed-tab {
+  font-size: 0.78em;
+  padding: 6px 14px;
+  border-radius: var(--ed-radius-sm);
+  cursor: pointer;
+  color: var(--text-muted);
+  border: none;
+  background: transparent;
+  font-weight: 600;
+  box-shadow: none;
+  transition: all 0.18s ease;
+}
+
+.ed-tab:hover {
+  color: var(--text-normal);
+}
+
+.ed-tab.is-active {
+  background: var(--background-primary);
+  color: var(--interactive-accent);
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* ---------------------------------------------------------- heat legend */
+
+.ed-legend {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.ed-legend-box {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+/* ------------------------------------------------------- activity: year */
+
+.ed-year-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ed-range {
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.ed-scroll {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.ed-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+
+.ed-scroll::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border);
+  border-radius: 3px;
+}
+
+.ed-months {
+  position: relative;
+  height: 14px;
+  margin-left: 22px;
+  margin-bottom: 4px;
+  min-width: max-content;
+}
+
+.ed-month-label {
+  position: absolute;
+  font-size: 10px;
+  color: var(--interactive-accent);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.ed-grid-body {
+  display: flex;
+  gap: 3px;
+  align-items: flex-start;
+  min-width: max-content;
+}
+
+.ed-wk-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 9px;
+  color: var(--text-muted);
+  width: 19px;
+}
+
+.ed-wk-label {
+  height: 11px;
+  line-height: 11px;
+}
+
+.ed-grid {
+  display: flex;
+  gap: 3px;
+}
+
+.ed-week-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ed-pill {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--ed-heat-0);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.ed-pill:hover {
+  transform: scale(1.3);
+}
+
+.ed-pill.is-blank {
+  background: transparent;
+  cursor: default;
+}
+
+.ed-pill[data-level="1"] { background: var(--ed-heat-1); }
+.ed-pill[data-level="2"] { background: var(--ed-heat-2); }
+.ed-pill[data-level="3"] { background: var(--ed-heat-3); }
+.ed-pill[data-level="4"] { background: var(--ed-heat-4); }
+.ed-pill.is-today { box-shadow: 0 0 0 1.5px var(--ed-heat-4); }
+
+/* ------------------------------------------------------ activity: month */
+
+.ed-month-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ed-month-title {
+  font-size: 0.95em;
+  font-weight: 600;
+}
+
+.ed-cal-weekdays,
+.ed-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.ed-cal-wk-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.ed-cal-cell {
+  aspect-ratio: 1;
+  border-radius: 5px;
+  background: var(--ed-heat-0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62em;
+  color: #5a6d75;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.ed-cal-cell:hover { transform: scale(1.08); }
+.ed-cal-cell[data-level="1"] { background: var(--ed-heat-1); }
+.ed-cal-cell[data-level="2"] { background: var(--ed-heat-2); color: #5a4a2a; }
+.ed-cal-cell[data-level="3"] { background: var(--ed-heat-3); color: #fff; }
+.ed-cal-cell[data-level="4"] { background: var(--ed-heat-4); color: #fff; }
+.ed-cal-cell.is-empty { background: transparent; cursor: default; }
+.ed-cal-cell.is-today { box-shadow: 0 0 0 2px var(--ed-heat-4); font-weight: 700; }
+
+.ed-month-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.ed-month-bottom .ed-badges { margin-top: 0; }
+
+/* ------------------------------------------------------- activity: week */
+
+.ed-week-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.ed-week-range {
+  font-size: 1.1em;
+  font-weight: 700;
+}
+
+.ed-week-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ed-week-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  background: var(--background-secondary);
+  border-radius: 12px;
+  padding: 12px 4px;
+}
+
+.ed-week-card.is-today {
+  background: rgba(232, 142, 142, 0.14);
+}
+
+.ed-week-day { font-size: 0.72em; color: var(--text-muted); font-weight: 600; }
+.ed-week-date { font-size: 0.65em; color: var(--text-faint); }
+.ed-week-count { font-size: 0.85em; font-weight: 700; color: var(--interactive-accent); }
+
+.ed-week-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--ed-heat-0);
+  cursor: pointer;
+}
+
+.ed-week-dot[data-level="1"] { background: var(--ed-heat-1); }
+.ed-week-dot[data-level="2"] { background: var(--ed-heat-2); }
+.ed-week-dot[data-level="3"] { background: var(--ed-heat-3); }
+.ed-week-dot[data-level="4"] { background: var(--ed-heat-4); }
+
+/* --------------------------------------------------------------- tooltip */
+
+.ed-tooltip {
+  position: fixed;
+  z-index: var(--layer-tooltip, 60);
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  font-size: 0.8em;
+  max-width: 240px;
+  display: none;
+  pointer-events: none;
+}
+
+.ed-tooltip.is-visible { display: block; }
+.ed-tooltip-date { font-weight: 700; margin-bottom: 4px; }
+.ed-tooltip-count { color: var(--interactive-accent); margin-bottom: 2px; }
+.ed-tooltip-focus { color: #e8a0a0; font-weight: 600; margin-top: 4px; }
+.ed-tooltip-new { color: #e88e8e; font-weight: 600; margin-top: 6px; }
+.ed-tooltip-file { color: var(--text-muted); font-size: 0.92em; line-height: 1.5; }
+
+/* ----------------------------------------------------------- focus timer */
+
+.ed-focus-modes {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin-bottom: 16px;
+}
+
+.ed-mode-btn {
+  flex: 1;
+  padding: 9px 14px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  border-radius: var(--ed-radius-md);
+  cursor: pointer;
+  font-size: 0.8em;
+  font-weight: 600;
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+
+.ed-mode-btn:hover { border-color: var(--interactive-accent); }
+
+.ed-mode-btn.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.ed-focus-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.ed-dial { flex-shrink: 0; }
+.ed-dial canvas { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)); }
+
+.ed-focus-info {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ed-focus-title {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--interactive-accent);
+}
+
+.ed-focus-set {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ed-focus-set.is-hidden { display: none; }
+
+.ed-focus-set-label {
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+.ed-focus-input {
+  width: 72px;
+  height: 32px;
+  text-align: center;
+  font-size: 0.85em;
+}
+
+.ed-focus-stats {
+  display: flex;
+  gap: 20px;
+}
+
+.ed-stat-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ed-stat-caption {
+  color: var(--text-muted);
+  font-size: 0.72em;
+}
+
+.ed-stat-strong {
+  font-weight: 700;
+  color: var(--interactive-accent);
+  font-size: 1.05em;
+}
+
+.ed-focus-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.ed-btn {
+  flex: 1;
+  background: var(--interactive-accent);
+  border: none;
+  color: var(--text-on-accent);
+  padding: 9px 14px;
+  border-radius: var(--ed-radius-md);
+  cursor: pointer;
+  font-size: 0.8em;
+  font-weight: 600;
+  min-height: 36px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.ed-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(91, 141, 239, 0.25);
+}
+
+.ed-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ed-btn-compact {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  min-height: 32px;
+}
+
+/* -------------------------------------------------------------- projects */
+
+.ed-project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.ed-project-card {
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+  --ed-proj-tint: linear-gradient(
+    135deg,
+    rgba(154, 208, 180, 0.2) 0%,
+    rgba(93, 167, 110, 0.1) 100%
+  );
+  border: 1px solid rgba(154, 208, 180, 0.35);
+  border-radius: var(--ed-radius-md);
+  padding: 14px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.ed-project-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--ed-proj-tint);
+  opacity: var(--ed-card-alpha, 1);
+  transition: opacity 0.25s ease;
+}
+
+.theme-dark .ed-project-card {
+  --ed-proj-tint: linear-gradient(
+    135deg,
+    rgba(130, 190, 160, 0.22) 0%,
+    rgba(65, 140, 90, 0.12) 100%
+  );
+  border-color: rgba(130, 190, 160, 0.4);
+}
+
+.ed-project-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--interactive-accent);
+}
+
+.ed-project-name {
+  font-weight: 600;
+  font-size: 0.94em;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.ed-project-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.8em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.ed-project-badge {
+  color: #fff;
+  padding: 2px 9px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ed-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ed-progress-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--background-modifier-border);
+  overflow: hidden;
+}
+
+.ed-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #6b9e8a 0%, #9ad0b4 100%);
+  transition: width 0.3s ease;
+}
+
+.ed-progress-label {
+  font-size: 0.78em;
+  color: var(--interactive-accent);
+  font-weight: 600;
+  min-width: 34px;
+  text-align: right;
+}
+
+/* ------------------------------------------------------------- taskboard */
+
+.ed-taskboard-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ed-taskboard-col {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ed-taskboard-label {
+  font-size: 0.78em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.ed-taskboard-value {
+  font-size: 0.85em;
+  color: var(--interactive-accent);
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------- task details */
+
+.ed-task-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.ed-task-col {
+  border-radius: var(--ed-radius-md);
+  overflow: hidden;
+  border: 2px solid var(--ed-col-accent, var(--background-modifier-border));
+  display: flex;
+  flex-direction: column;
+}
+
+.ed-task-head {
+  background: var(--ed-col-accent, var(--interactive-accent));
+  color: #fff;
+  font-weight: 700;
+  padding: 10px 12px;
+  font-size: 0.88em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ed-task-count {
+  background: rgba(0, 0, 0, 0.22);
+  padding: 1px 9px;
+  border-radius: 12px;
+  font-size: 0.82em;
+}
+
+.ed-task-list {
+  padding: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.ed-task-item {
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border-radius: var(--ed-radius-sm);
+  background: var(--background-primary);
+  font-size: 0.8em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: background 0.15s ease;
+}
+
+.ed-task-item:hover { background: var(--background-modifier-hover); }
+
+.ed-task-item.is-high {
+  border-left: 4px solid #e8a0a0;
+  background: rgba(232, 160, 160, 0.15);
+}
+
+.ed-task-item.is-done {
+  text-decoration: line-through;
+  opacity: 0.5;
+  background: transparent;
+}
+
+.ed-task-date {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ed-task-check {
+  flex-shrink: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* Read-only overview: a status glyph rather than a control. */
+.ed-task-glyph {
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+  font-size: 0.9em;
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+
+.ed-task-item.is-readonly {
+  cursor: default;
+}
+
+.ed-task-item.is-readonly:hover {
+  background: var(--background-primary);
+}
+
+.elegant-dashboard.is-glass .ed-task-item.is-readonly:hover {
+  background: var(--ed-glass-inner);
+}
+
+.ed-task-item.is-readonly.is-done:hover {
+  background: transparent;
+}
+
+.ed-task-text {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.ed-task-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.ed-task-item:hover .ed-task-actions,
+.ed-task-item:focus-within .ed-task-actions {
+  opacity: 1;
+}
+
+/* The due-date chip should stay readable even when actions are hidden. */
+.ed-task-actions .ed-task-date {
+  opacity: 1;
+}
+
+.ed-task-item .ed-task-actions:has(.ed-task-date) {
+  opacity: 1;
+}
+
+.ed-task-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.ed-task-icon:hover {
+  color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+
+.ed-task-icon .svg-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* ------------------------------------------------------------- add row */
+
+.ed-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--background-modifier-border);
+  flex-wrap: wrap;
+}
+
+.ed-add-input {
+  flex: 1;
+  min-width: 160px;
+  height: 32px;
+  font-size: 0.85em;
+}
+
+.ed-add-section {
+  height: 32px;
+  font-size: 0.8em;
+  max-width: 160px;
+}
+
+.ed-btn-ghost {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  color: var(--interactive-accent);
+  border: 1px dashed var(--ed-green-border);
+  font-size: 0.82em;
+}
+
+.ed-btn-ghost:hover:not(:disabled) {
+  background: var(--background-modifier-hover);
+  border-style: solid;
+  box-shadow: none;
+  transform: none;
+}
+
+.ed-btn-ghost .svg-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* -------------------------------------------------- interactive projects */
+
+.ed-project-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ed-project-header .ed-project-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.ed-project-header .ed-task-icon {
+  opacity: 0;
+}
+
+.ed-project-card:hover .ed-task-icon {
+  opacity: 1;
+}
+
+.is-clickable {
+  cursor: pointer;
+}
+
+.ed-project-status.is-clickable:hover {
+  color: var(--interactive-accent);
+  text-decoration: underline;
+}
+
+.ed-progress-track.is-clickable:hover {
+  outline: 1px solid var(--interactive-accent);
+  outline-offset: 1px;
+}
+
+.ed-task-empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 0.8em;
+}
+
+/* ------------------------------------------------------------- recent */
+
+.ed-recent-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ed-recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 4px;
+  font-size: 0.82em;
+}
+
+.ed-recent-link {
+  color: var(--interactive-accent);
+  text-decoration: none;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-recent-link:hover { text-decoration: underline; }
+
+.ed-recent-time {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------- stats */
+
+.ed-stat-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ed-stat-cell {
+  flex: 1;
+  min-width: 100px;
+  background: var(--background-secondary);
+  border-radius: var(--ed-radius-md);
+  padding: 12px 14px;
+  text-align: center;
+}
+
+.ed-stat-num {
+  font-size: 1.35em;
+  font-weight: 700;
+  color: var(--interactive-accent);
+}
+
+.ed-stat-label {
+  font-size: 0.72em;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* -------------------------------------------------------------- charts */
+
+.ed-chart-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.ed-chart-col {
+  flex: 1;
+  min-width: 240px;
+}
+
+.ed-chart-col-narrow {
+  flex: 0 1 240px;
+  max-width: 240px;
+}
+
+.ed-chart-title {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--interactive-accent);
+  margin-bottom: 6px;
+}
+
+/* Signals that the canvases respond to hover. */
+.ed-chart-canvas {
+  cursor: crosshair;
+}
+
+.ed-tooltip-swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: baseline;
+}
+
+/* ------------------------------------------------------- plugin manager */
+
+.ed-plugin-list {
+  max-height: 280px;
+  overflow-y: auto;
+  font-size: 0.82em;
+}
+
+.ed-plugin-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.ed-plugin-item:last-child { border-bottom: none; }
+
+.ed-plugin-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-plugin-version {
+  color: var(--text-faint);
+  font-size: 0.85em;
+}
+
+.ed-toggle {
+  width: 32px;
+  height: 17px;
+  border-radius: 9px;
+  background: var(--background-modifier-border);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.18s ease;
+}
+
+.ed-toggle.is-on { background: #6b9e8a; }
+
+.ed-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.18s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.ed-toggle.is-on .ed-toggle-knob { left: 17px; }
+
+/* ------------------------------------------------------------ responsive */
+
+@media (max-width: 620px) {
+  .ed-scroll-root { padding: 12px 12px 32px; }
+  .ed-focus-row { flex-direction: column; align-items: center; }
+  .ed-week-row { flex-wrap: wrap; }
+  .ed-week-card { min-width: 60px; }
+}

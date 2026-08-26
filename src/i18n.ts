@@ -1,0 +1,252 @@
+import { Lang } from "./types";
+
+export interface Strings {
+  dashboard: string;
+  noteActivity: string;
+  projectsBoard: string;
+  taskboard: string;
+  taskDetails: string;
+  focusSession: string;
+  today: string;
+  todo: string;
+  done: string;
+  week: string;
+  month: string;
+  projects: string;
+  tasks: string;
+  overview: string;
+  allProjects: string;
+  allTasks: string;
+  openNote: string;
+  focus: string;
+  focusHistory: string;
+  totalFocus: string;
+  avgPerDay: string;
+  bestDay: string;
+  streak: string;
+  activeDaysShort: string;
+  noFocusData: string;
+  hoursUnit: string;
+  daysUnit: string;
+  recentEdited: string;
+  totalNotes: string;
+  totalWords: string;
+  totalLinks: string;
+  last365days: string;
+  noTodayTasks: string;
+  noTodoTasks: string;
+  noDoneTasks: string;
+  noProjects: string;
+  wordTrend: string;
+  tagRatio: string;
+  noTags: string;
+  wordsUnit: string;
+  notesUnit: string;
+  pluginManager: string;
+  weekView: string;
+  monthView: string;
+  yearView: string;
+  less: string;
+  more: string;
+  activeDays: string;
+  fileUpdates: string;
+  newNotes: string;
+  fileActivity: string;
+  added: string;
+  andMore: (n: number) => string;
+  minutesFocused: string;
+  countdownMode: string;
+  accumulateMode: string;
+  setLabel: string;
+  minutes: string;
+  minuteUnit: string;
+  todayFocus: string;
+  monthTotal: string;
+  start: string;
+  pause: string;
+  reset: string;
+  refresh: string;
+  countdownLabel: string;
+  accumulateLabel: string;
+  focusDone: (m: number) => string;
+  focusSaved: (m: number) => string;
+  focusRangeError: string;
+  focusSetTo: (m: number) => string;
+  stopBeforeSwitch: string;
+  switchedTo: (mode: string) => string;
+  weekdayShort: string[];
+  weekdayFull: string[];
+  monthNames: string[];
+  formatDayTitle: (month: number, day: number) => string;
+  formatMonthTitle: (y: number, m: number) => string;
+  formatRange: (a: Date, b: Date) => string;
+}
+
+const pad = (n: number) => String(n);
+
+export const I18N: Record<Lang, Strings> = {
+  cn: {
+    dashboard: "仪表板",
+    noteActivity: "笔记活动",
+    projectsBoard: "项目概览",
+    taskboard: "任务统计",
+    taskDetails: "任务详情",
+    focusSession: "专注时段",
+    today: "今日",
+    todo: "待办",
+    done: "完成",
+    week: "本周",
+    month: "本月",
+    projects: "项目",
+    tasks: "任务",
+    overview: "总览",
+    allProjects: "全部项目",
+    allTasks: "全部任务",
+    openNote: "打开源笔记",
+    focus: "专注",
+    focusHistory: "专注时长变化",
+    totalFocus: "累计专注",
+    avgPerDay: "日均",
+    bestDay: "最高单日",
+    streak: "连续专注",
+    activeDaysShort: "专注天数",
+    noFocusData: "还没有专注记录，用计时器开始第一段专注吧",
+    hoursUnit: "小时",
+    daysUnit: "天",
+    recentEdited: "最近编辑",
+    totalNotes: "总笔记数量",
+    totalWords: "总字数",
+    totalLinks: "总链接数",
+    last365days: "最近 365 天",
+    noTodayTasks: "暂无今日任务",
+    noTodoTasks: "没有待办任务",
+    noDoneTasks: "还没有完成的任务",
+    noProjects: "暂无进行中的项目",
+    wordTrend: "近 12 个月字数趋势",
+    tagRatio: "标签占比",
+    noTags: "暂无标签",
+    wordsUnit: "字",
+    notesUnit: "篇",
+    pluginManager: "插件管理",
+    weekView: "周",
+    monthView: "月",
+    yearView: "年",
+    less: "少",
+    more: "多",
+    activeDays: "个活跃日",
+    fileUpdates: "次文件活动",
+    newNotes: "篇新增",
+    fileActivity: "次文件活动",
+    added: "新增",
+    andMore: (n) => `…等 ${n} 篇`,
+    minutesFocused: "分钟专注",
+    countdownMode: "⏱️ 倒计时",
+    accumulateMode: "⏲️ 累加",
+    setLabel: "设置:",
+    minutes: "分钟",
+    minuteUnit: "分钟",
+    todayFocus: "今日专注",
+    monthTotal: "本月统计",
+    start: "▶ 开始",
+    pause: "⏸ 暂停",
+    reset: "↻ 重置",
+    refresh: "刷新",
+    countdownLabel: "倒计时",
+    accumulateLabel: "累加中",
+    focusDone: (m) => `🎉 专注时间完成！已记录 ${m} 分钟`,
+    focusSaved: (m) => `✅ 已保存累加时间：${m} 分钟`,
+    focusRangeError: "请输入 1-180 分钟之间的时间",
+    focusSetTo: (m) => `⏱️ 已设置专注时间为 ${m} 分钟`,
+    stopBeforeSwitch: "请先停止计时器再切换模式",
+    switchedTo: (mode) => `已切换到 ${mode}`,
+    weekdayShort: ["一", "二", "三", "四", "五", "六", "日"],
+    weekdayFull: ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"],
+    monthNames: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
+    formatDayTitle: (m, d) => `${m}月${d}日`,
+    formatMonthTitle: (y, m) => `${y}年${m}月`,
+    formatRange: (a, b) =>
+      `${a.getMonth() + 1}月${a.getDate()}日 — ${b.getMonth() + 1}月${b.getDate()}日`,
+  },
+  en: {
+    dashboard: "Dashboard",
+    noteActivity: "Note Activity",
+    projectsBoard: "Projects Board",
+    taskboard: "Taskboard",
+    taskDetails: "Task Details",
+    focusSession: "Focus Session",
+    today: "Today",
+    todo: "Todo",
+    done: "Done",
+    week: "Week",
+    month: "Month",
+    projects: "Projects",
+    tasks: "Tasks",
+    overview: "Overview",
+    allProjects: "All Projects",
+    allTasks: "All Tasks",
+    openNote: "Open source note",
+    focus: "Focus",
+    focusHistory: "Focus Time Trend",
+    totalFocus: "Total",
+    avgPerDay: "Daily avg",
+    bestDay: "Best day",
+    streak: "Streak",
+    activeDaysShort: "Focus days",
+    noFocusData: "No focus sessions yet — start the timer to record your first one",
+    hoursUnit: "h",
+    daysUnit: "d",
+    recentEdited: "Recently Edited",
+    totalNotes: "Total Notes",
+    totalWords: "Total Words",
+    totalLinks: "Total Links",
+    last365days: "Last 365 Days",
+    noTodayTasks: "No tasks today",
+    noTodoTasks: "No tasks",
+    noDoneTasks: "No completed tasks",
+    noProjects: "No ongoing projects",
+    wordTrend: "Last 12 Months Words",
+    tagRatio: "Tag Distribution",
+    noTags: "No tags",
+    wordsUnit: "words",
+    notesUnit: "notes",
+    pluginManager: "Plugin Manager",
+    weekView: "W",
+    monthView: "M",
+    yearView: "Y",
+    less: "Less",
+    more: "More",
+    activeDays: "active days",
+    fileUpdates: "file updates",
+    newNotes: "new notes",
+    fileActivity: "file updates",
+    added: "Added",
+    andMore: (n) => `…and ${n} more`,
+    minutesFocused: "min focused",
+    countdownMode: "⏱️ Countdown",
+    accumulateMode: "⏲️ Accumulate",
+    setLabel: "Set:",
+    minutes: "min",
+    minuteUnit: "min",
+    todayFocus: "Today Focus",
+    monthTotal: "Month Total",
+    start: "▶ Start",
+    pause: "⏸ Pause",
+    reset: "↻ Reset",
+    refresh: "Refresh",
+    countdownLabel: "Countdown",
+    accumulateLabel: "Accumulate",
+    focusDone: (m) => `🎉 Focus completed! Recorded ${m} min`,
+    focusSaved: (m) => `✅ Saved accumulated time: ${m} min`,
+    focusRangeError: "Please enter a time between 1-180 minutes",
+    focusSetTo: (m) => `⏱️ Focus time set to ${m} min`,
+    stopBeforeSwitch: "Please stop the timer before switching mode",
+    switchedTo: (mode) => `Switched to ${mode}`,
+    weekdayShort: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    weekdayFull: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    monthNames: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    formatDayTitle: (m, d) => `${m}/${d}`,
+    formatMonthTitle: (y, m) => `${y}-${pad(m)}`,
+    formatRange: (a, b) =>
+      `${a.getMonth() + 1}/${a.getDate()} — ${b.getMonth() + 1}/${b.getDate()}`,
+  },
+};
