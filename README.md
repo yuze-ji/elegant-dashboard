@@ -6,7 +6,9 @@ management, vault statistics and charts — in one view.
 No Dataview dependency, no CDN. All charts are drawn on a canvas, so the plugin
 works offline.
 
-<!-- Add a screenshot here, e.g. ![Dashboard](docs/screenshot.png) -->
+![Elegant Dashboard](docs/screenshot.jpg)
+
+*Overview page with the bundled Monet background and liquid-glass panels.*
 
 ## Features
 
