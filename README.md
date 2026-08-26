@@ -70,29 +70,48 @@ Because the data lives under `.obsidian/`, make sure your sync or backup covers
 
 ## Install
 
-### Manually
+The repository ships the built plugin, so no build step is required.
 
-1. Download `main.js`, `manifest.json` and `styles.css` from the
-   [releases](../../releases).
-2. Put them in `<vault>/.obsidian/plugins/elegant-dashboard/`.
-3. Enable the plugin in **Settings → Community plugins**.
+### Clone straight into your vault (easiest)
+
+```bash
+cd /path/to/your-vault/.obsidian/plugins
+git clone https://github.com/yuze-ji/elegant-dashboard.git
+```
+
+Then enable **Elegant Dashboard** in *Settings → Community plugins*. If it is
+not listed, click the reload icon next to *Installed plugins* first.
+
+### Download the ZIP
+
+1. **Code → Download ZIP** on the repository page.
+2. Unzip it into `<vault>/.obsidian/plugins/`.
+3. **Rename the folder** from `elegant-dashboard-main` to `elegant-dashboard`.
+   GitHub appends the branch name, and Obsidian ignores folders whose name does
+   not match the plugin id.
+4. Enable it in *Settings → Community plugins*.
+
+### Minimum files
+
+If you prefer to copy files by hand, these four are enough:
+
+| File | Purpose |
+| --- | --- |
+| `main.js` | The plugin itself |
+| `manifest.json` | Plugin metadata |
+| `styles.css` | Styling |
+| `background.jpg` | Bundled Monet background (optional) |
+
+Everything else in the repository is source and build tooling.
 
 ### From source
 
 ```bash
-git clone <this-repo> elegant-dashboard
-cd elegant-dashboard
 npm install
-npm run build
+npm run build   # or `npm run dev` for a watch build
 ```
 
-Then copy the folder into `<vault>/.obsidian/plugins/`, or clone directly there.
-
-For a watch build during development:
-
-```bash
-npm run dev
-```
+Requires Obsidian 1.6 or newer.
 
 ## Usage
 
@@ -106,9 +125,21 @@ Open the dashboard from the ribbon icon or the command palette.
 
 ## Background image
 
-The screenshots use Monet's *Water Lilies* (1906, Ryerson) from Wikimedia
-Commons — public domain. It is not committed to this repository; fetch it with
-the command in `.gitignore`, or point the setting at any image you like.
+Monet's *Water Lilies* (1906, Ryerson) ships with the plugin as
+`background.jpg` and is enabled by default, so a fresh install looks like the
+screenshots. The painting is in the public domain; the file comes from
+[Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Claude_Monet_-_Water_Lilies_-_1906,_Ryerson.jpg).
+
+In *Settings → Appearance* you can:
+
+- point **Background image** at any URL or vault-relative path,
+- press **Monet** to return to the bundled painting,
+- press **Clear** to turn the background off,
+- adjust background opacity and card tint independently.
+
+The bundled image is referenced by the sentinel `@bundled`, which resolves
+against the plugin's actual install folder — renaming that folder will not
+break it.
 
 ## License
 

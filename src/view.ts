@@ -2,6 +2,7 @@ import { ItemView, TFile, WorkspaceLeaf, setIcon } from "obsidian";
 import type DashboardPlugin from "./main";
 import { Ctx } from "./ui";
 import { MODULE_ORDER, ModuleId } from "./types";
+import { BUNDLED_BACKGROUND } from "./settings";
 import { renderActivity } from "./components/activity";
 import { renderFocusTimer } from "./components/focusTimer";
 import { renderProjects } from "./components/projects";
@@ -183,7 +184,14 @@ export class DashboardView extends ItemView {
   private resolveBackgroundUrl(raw: string): string {
     const escape = (s: string) => s.replace(/["\\]/g, "\\$&");
     if (/^(https?:|data:|app:|file:)/i.test(raw)) return escape(raw);
-    const path = raw.replace(/^\/+/, "");
+
+    // "@bundled" points at the image shipped with the plugin. Resolve it from
+    // the manifest so a renamed install folder still finds it.
+    const path =
+      raw === BUNDLED_BACKGROUND
+        ? `${this.plugin.manifest.dir ?? ""}/background.jpg`.replace(/^\/+/, "")
+        : raw.replace(/^\/+/, "");
+
     try {
       return escape(this.app.vault.adapter.getResourcePath(path));
     } catch {

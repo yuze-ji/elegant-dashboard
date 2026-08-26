@@ -69,8 +69,10 @@ export const DEFAULT_SETTINGS: DashboardSettings = {
   taskTargetMonth: 100,
   taskLimit: 15,
   recentLimit: 5,
-  backgroundImage: "",
-  backgroundOpacity: 0.18,
+  // Ships with the bundled Monet background switched on, so a fresh install
+  // looks like the screenshots rather than a blank panel.
+  backgroundImage: "@bundled",
+  backgroundOpacity: 1,
   cardOpacity: 1,
   liquidGlass: true,
   glassBlur: 24,

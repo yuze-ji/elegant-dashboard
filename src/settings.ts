@@ -2,9 +2,12 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import type DashboardPlugin from "./main";
 import { MODULE_ORDER, ModuleId } from "./types";
 
-/** Monet, *Water Lilies* (1906, Ryerson) — shipped with the plugin so it works offline. */
-export const BUNDLED_BACKGROUND =
-  ".obsidian/plugins/elegant-dashboard/background.jpg";
+/**
+ * Sentinel for the bundled Monet *Water Lilies* (1906, Ryerson). Resolved at
+ * render time against the plugin's real folder, so renaming the install
+ * directory cannot break it.
+ */
+export const BUNDLED_BACKGROUND = "@bundled";
 
 const MODULE_LABELS: Record<ModuleId, { cn: string; en: string }> = {
   activity: { cn: "笔记活动热力图", en: "Note activity heatmap" },
