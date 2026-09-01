@@ -42,7 +42,6 @@ export interface Strings {
   noTags: string;
   wordsUnit: string;
   notesUnit: string;
-  pluginManager: string;
   weekView: string;
   monthView: string;
   yearView: string;
@@ -142,7 +141,6 @@ export const I18N: Record<Lang, Strings> = {
     noTags: "暂无标签",
     wordsUnit: "字",
     notesUnit: "篇",
-    pluginManager: "插件管理",
     weekView: "周",
     monthView: "月",
     yearView: "年",
@@ -240,7 +238,6 @@ export const I18N: Record<Lang, Strings> = {
     noTags: "No tags",
     wordsUnit: "words",
     notesUnit: "notes",
-    pluginManager: "Plugin Manager",
     weekView: "W",
     monthView: "M",
     yearView: "Y",

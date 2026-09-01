@@ -19,7 +19,6 @@ const MODULE_LABELS: Record<ModuleId, { cn: string; en: string }> = {
   recent: { cn: "最近编辑", en: "Recently edited" },
   stats: { cn: "库统计", en: "Vault stats" },
   charts: { cn: "字数趋势 / 标签占比", en: "Word trend / tag ratio" },
-  plugins: { cn: "插件管理", en: "Plugin manager" },
 };
 
 export class DashboardSettingTab extends PluginSettingTab {

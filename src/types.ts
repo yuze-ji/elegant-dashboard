@@ -9,8 +9,7 @@ export type ModuleId =
   | "taskDetails"
   | "recent"
   | "stats"
-  | "charts"
-  | "plugins";
+  | "charts";
 
 export const MODULE_ORDER: ModuleId[] = [
   "clock",
@@ -22,7 +21,6 @@ export const MODULE_ORDER: ModuleId[] = [
   "recent",
   "stats",
   "charts",
-  "plugins",
 ];
 
 /** How the focus timer draws its remaining time. */
@@ -107,7 +105,6 @@ export const DEFAULT_SETTINGS: DashboardSettings = {
     recent: true,
     stats: true,
     charts: true,
-    plugins: true,
   },
   focusLog: {},
   storedTasks: [],

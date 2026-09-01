@@ -51,7 +51,6 @@ The dashboard has four in-plugin pages — nothing opens a markdown tab.
   tooltips and highlight.
 - **Focus history** — line chart with week / month / year ranges, plus totals,
   daily average, best day and current streak.
-- **Plugin manager** — toggle any installed plugin.
 
 ### Appearance
 
@@ -103,14 +102,16 @@ not listed, click the reload icon next to *Installed plugins* first.
 
 ### Minimum files
 
-If you prefer to copy files by hand, these four are enough:
+If you prefer to copy files by hand, these three are enough — the same three
+the Community Plugins installer fetches from a release, so the bundled
+background works either way (it's a data URI baked into `styles.css`, not a
+separate file):
 
 | File | Purpose |
 | --- | --- |
 | `main.js` | The plugin itself |
 | `manifest.json` | Plugin metadata |
-| `styles.css` | Styling |
-| `background.jpg` | Bundled Monet background (optional) |
+| `styles.css` | Styling, including the bundled background image |
 
 Everything else in the repository is source and build tooling.
 
@@ -135,9 +136,13 @@ Open the dashboard from the ribbon icon or the command palette.
 
 ## Background image
 
-Monet's *Water Lilies* (1906, Ryerson) ships with the plugin as
-`background.jpg` and is enabled by default, so a fresh install looks like the
-screenshots. The painting is in the public domain; the file comes from
+Monet's *Water Lilies* (1906, Ryerson) ships with the plugin, baked into
+`styles.css` as a resized, recompressed data URI, and is enabled by default so
+a fresh install looks like the screenshots. Embedding it — rather than
+shipping a loose `background.jpg` — is what lets it survive the official
+Community Plugins install path, which only ever pulls `main.js`,
+`manifest.json` and `styles.css` from a release. The painting is in the public
+domain; the original comes from
 [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Claude_Monet_-_Water_Lilies_-_1906,_Ryerson.jpg).
 
 In *Settings → Appearance* you can:
@@ -147,9 +152,8 @@ In *Settings → Appearance* you can:
 - press **Clear** to turn the background off,
 - adjust background opacity and card tint independently.
 
-The bundled image is referenced by the sentinel `@bundled`, which resolves
-against the plugin's actual install folder — renaming that folder will not
-break it.
+The bundled image is referenced by the sentinel `@bundled`, which resolves to
+the embedded data URI regardless of where the plugin is installed.
 
 ## License
 

@@ -12,7 +12,6 @@ import { renderTaskDetails } from "./components/taskDetails";
 import { renderRecent } from "./components/recent";
 import { renderStats } from "./components/stats";
 import { renderTrends } from "./components/trends";
-import { renderPluginManager } from "./components/pluginManager";
 import { renderFocusHistory } from "./components/focusHistory";
 
 export const VIEW_TYPE_DASHBOARD = "elegant-dashboard-view";
@@ -96,7 +95,6 @@ export class DashboardView extends ItemView {
       save: () => this.plugin.saveSettings(),
       refresh: () => void this.render(),
       onCleanup: (fn) => this.cleanups.push(fn),
-      selfId: this.plugin.manifest.id,
     };
 
     container.style.setProperty("--ed-card-alpha", String(settings.cardOpacity));
@@ -155,7 +153,6 @@ export class DashboardView extends ItemView {
           renderRecent(grid, ctx, this.plugin.data.getRecentFiles(settings.recentLimit)),
         stats: () => renderStats(grid, ctx, vaultStats),
         charts: () => renderTrends(grid, ctx, vaultStats, months),
-        plugins: () => renderPluginManager(grid, ctx),
       };
 
       for (const id of MODULE_ORDER) {
@@ -176,7 +173,16 @@ export class DashboardView extends ItemView {
     }
     container.addClass("has-bg");
     const bg = container.createDiv({ cls: "ed-bg" });
-    bg.style.backgroundImage = `url("${this.resolveBackgroundUrl(raw)}")`;
+    if (raw === BUNDLED_BACKGROUND) {
+      // Baked into styles.css as a data URI instead of shipped as a loose
+      // background.jpg: Obsidian's Community Plugins installer only ever
+      // fetches main.js/manifest.json/styles.css from a release, so a
+      // separate image asset would silently be missing for anyone who did
+      // not install by cloning the repo.
+      bg.addClass("ed-bg-bundled");
+    } else {
+      bg.style.backgroundImage = `url("${this.resolveBackgroundUrl(raw)}")`;
+    }
     bg.style.opacity = String(this.plugin.settings.backgroundOpacity);
   }
 
@@ -187,16 +193,8 @@ export class DashboardView extends ItemView {
   private resolveBackgroundUrl(raw: string): string {
     const escape = (s: string) => s.replace(/["\\]/g, "\\$&");
     if (/^(https?:|data:|app:|file:)/i.test(raw)) return escape(raw);
-
-    // "@bundled" points at the image shipped with the plugin. Resolve it from
-    // the manifest so a renamed install folder still finds it.
-    const path =
-      raw === BUNDLED_BACKGROUND
-        ? `${this.plugin.manifest.dir ?? ""}/background.jpg`.replace(/^\/+/, "")
-        : raw.replace(/^\/+/, "");
-
     try {
-      return escape(this.app.vault.adapter.getResourcePath(path));
+      return escape(this.app.vault.adapter.getResourcePath(raw.replace(/^\/+/, "")));
     } catch {
       return escape(raw);
     }
