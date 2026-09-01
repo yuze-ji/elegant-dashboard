@@ -3,8 +3,49 @@ import { FocusEngine } from "../focus";
 import { drawDial, themeColors } from "../charts";
 import { Ctx, card } from "../ui";
 import { mmss } from "../dates";
+import { flipGroup, flipSeparator } from "./flip";
 
 const DIAL_SIZE = 140;
+
+/** Draws the remaining time; the two styles differ only in presentation. */
+interface ClockFace {
+  paint: (timeText: string, subText: string, progress: number) => void;
+}
+
+function dialFace(parent: HTMLElement): ClockFace {
+  const wrap = parent.createDiv({ cls: "ed-dial" });
+  const canvas = wrap.createEl("canvas");
+  return {
+    paint: (timeText, subText, progress) =>
+      drawDial(canvas, DIAL_SIZE, progress, timeText, subText, themeColors()),
+  };
+}
+
+function flipFace(parent: HTMLElement, ctx: Ctx): ClockFace {
+  const wrap = parent.createDiv({ cls: "ed-focus-flip" });
+  const row = wrap.createDiv({ cls: "ed-flip-row is-compact" });
+  const mins = flipGroup(row, "25");
+  flipSeparator(row);
+  const secs = flipGroup(row, "00");
+  const bar = wrap.createDiv({ cls: "ed-focus-bar" });
+  const fill = bar.createDiv({ cls: "ed-focus-bar-fill" });
+  const sub = wrap.createDiv({ cls: "ed-focus-flip-sub" });
+
+  ctx.onCleanup(() => {
+    mins.destroy();
+    secs.destroy();
+  });
+
+  return {
+    paint: (timeText, subText, progress) => {
+      const [m, s] = timeText.split(":");
+      mins.set(m ?? "00");
+      secs.set(s ?? "00");
+      fill.style.width = `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%`;
+      sub.setText(subText);
+    },
+  };
+}
 
 export function renderFocusTimer(parent: HTMLElement, ctx: Ctx, engine: FocusEngine) {
   const { t } = ctx;
@@ -23,8 +64,10 @@ export function renderFocusTimer(parent: HTMLElement, ctx: Ctx, engine: FocusEng
   });
 
   const contentRow = root.createDiv({ cls: "ed-focus-row" });
-  const dialWrap = contentRow.createDiv({ cls: "ed-dial" });
-  const canvas = dialWrap.createEl("canvas");
+  const face =
+    ctx.settings.focusClockStyle === "flip"
+      ? flipFace(contentRow, ctx)
+      : dialFace(contentRow);
 
   const info = contentRow.createDiv({ cls: "ed-focus-info" });
   info.createDiv({ cls: "ed-focus-title", text: t.focusSession });
@@ -57,14 +100,7 @@ export function renderFocusTimer(parent: HTMLElement, ctx: Ctx, engine: FocusEng
         ? t.countdownLabel
         : t.accumulateLabel
       : "";
-    drawDial(
-      canvas,
-      DIAL_SIZE,
-      engine.progress,
-      mmss(engine.displaySeconds),
-      sub,
-      themeColors()
-    );
+    face.paint(mmss(engine.displaySeconds), sub, engine.progress);
 
     todayStat.value.setText(`${engine.todayMinutes()}${t.minuteUnit}`);
     monthStat.value.setText(`${engine.monthMinutes()}${t.minuteUnit}`);

@@ -14,6 +14,8 @@ export interface Ctx {
   refresh: () => void;
   /** Registers a cleanup callback run when the view unloads or re-renders. */
   onCleanup: (fn: () => void) => void;
+  /** This plugin's own manifest id, e.g. so the plugin manager can hide itself. */
+  selfId: string;
 }
 
 export function card(parent: HTMLElement, title?: string): HTMLElement {

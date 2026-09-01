@@ -1,6 +1,7 @@
 export type Lang = "cn" | "en";
 
 export type ModuleId =
+  | "clock"
   | "activity"
   | "focus"
   | "projects"
@@ -12,6 +13,7 @@ export type ModuleId =
   | "plugins";
 
 export const MODULE_ORDER: ModuleId[] = [
+  "clock",
   "activity",
   "focus",
   "projects",
@@ -23,13 +25,35 @@ export const MODULE_ORDER: ModuleId[] = [
   "plugins",
 ];
 
+/** How the focus timer draws its remaining time. */
+export type FocusClockStyle = "dial" | "flip";
+
+export interface AlarmItem {
+  id: string;
+  /** "HH:MM", always 24h regardless of the display setting. */
+  time: string;
+  label: string;
+  enabled: boolean;
+  /** ISO weekdays (1 = Mon … 7 = Sun) to ring on. Empty = every day. */
+  days: number[];
+  /** "YYYY-MM-DDTHH:MM" of the last ring, so one minute cannot fire twice. */
+  lastFired: string | null;
+}
+
 export interface DashboardSettings {
   lang: Lang;
-  /** Folder scanned for task/project source notes. */
-  dashboardFolder: string;
-  /** Only notes whose basename contains this string are parsed for tasks. Empty = all. */
-  taskFileFilter: string;
   focusDefaultMinutes: number;
+  /** "dial" = canvas ring, "flip" = flip-clock digits. */
+  focusClockStyle: FocusClockStyle;
+  /** Clock module: 24-hour vs 12-hour display. */
+  clock24h: boolean;
+  /** Clock module: show the seconds pair. */
+  clockSeconds: boolean;
+  /** Clock module: show the date / weekday line. */
+  clockShowDate: boolean;
+  /** Play a tone when an alarm fires (in addition to the notice). */
+  alarmSound: boolean;
+  alarms: AlarmItem[];
   taskTargetToday: number;
   taskTargetWeek: number;
   taskTargetMonth: number;
@@ -46,24 +70,21 @@ export interface DashboardSettings {
   modules: Record<ModuleId, boolean>;
   /** date (YYYY-MM-DD) -> minutes focused */
   focusLog: Record<string, number>;
-  migratedFocusFromLocalStorage: boolean;
-  /** Auto-create the data notes on first load. */
-  scaffoldOnInstall: boolean;
-  /** Set once the scaffold has run, so deleting the notes does not resurrect them. */
-  scaffolded: boolean;
-  /** "markdown" reads/writes the notes; "plugin" keeps everything in data.json. */
-  storageMode: StorageMode;
   storedTasks: StoredTask[];
   storedProjects: StoredProject[];
-  /** Section names offered when adding a task in plugin storage. */
+  /** Section names offered when adding a task. */
   taskSections: string[];
 }
 
 export const DEFAULT_SETTINGS: DashboardSettings = {
   lang: "cn",
-  dashboardFolder: "Dashboard",
-  taskFileFilter: "List",
   focusDefaultMinutes: 25,
+  focusClockStyle: "dial",
+  clock24h: true,
+  clockSeconds: true,
+  clockShowDate: true,
+  alarmSound: true,
+  alarms: [],
   taskTargetToday: 5,
   taskTargetWeek: 25,
   taskTargetMonth: 100,
@@ -77,6 +98,7 @@ export const DEFAULT_SETTINGS: DashboardSettings = {
   liquidGlass: true,
   glassBlur: 24,
   modules: {
+    clock: true,
     activity: true,
     focus: true,
     projects: true,
@@ -88,10 +110,6 @@ export const DEFAULT_SETTINGS: DashboardSettings = {
     plugins: true,
   },
   focusLog: {},
-  migratedFocusFromLocalStorage: false,
-  scaffoldOnInstall: false,
-  scaffolded: true,
-  storageMode: "plugin",
   storedTasks: [],
   storedProjects: [],
   taskSections: ["今日任务", "本周任务", "本月任务", "长期目标"],
@@ -102,9 +120,6 @@ export function newId(): string {
   if (c && typeof c.randomUUID === "function") return c.randomUUID();
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
-
-/** Where tasks and projects live. */
-export type StorageMode = "markdown" | "plugin";
 
 export interface StoredTask {
   id: string;
@@ -131,12 +146,7 @@ export interface ProjectItem {
   status: "active" | "paused" | "done" | "backlog" | string;
   priority: "high" | "medium" | "low" | string;
   progress: number;
-  /** Note whose frontmatter this project came from; empty in plugin storage. */
-  sourcePath: string;
-  /** Position inside that note's `projects` array, for in-place edits. */
-  index: number;
-  /** Stable id when stored in the plugin; null when parsed from markdown. */
-  id: string | null;
+  id: string;
 }
 
 export const PROJECT_STATUSES = ["active", "paused", "done", "backlog"] as const;
@@ -144,7 +154,6 @@ export const PROJECT_PRIORITIES = ["high", "medium", "low"] as const;
 
 export interface TaskItem {
   name: string;
-  raw: string;
   done: boolean;
   pinned: boolean;
   priority: "high" | "normal";
@@ -152,11 +161,7 @@ export interface TaskItem {
   doneDate: string | null;
   dueDate: string | null;
   section: string;
-  /** Source note; empty when the task lives in plugin storage. */
-  path: string;
-  line: number;
-  /** Stable id when stored in the plugin; null when parsed from markdown. */
-  id: string | null;
+  id: string;
 }
 
 export interface TaskBuckets {

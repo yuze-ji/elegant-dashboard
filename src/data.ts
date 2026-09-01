@@ -70,13 +70,11 @@ export class DataService {
 
   /** Projects live in the plugin's own data file. */
   getProjects(): ProjectItem[] {
-    return this.settings.storedProjects.map((p, index) => ({
+    return this.settings.storedProjects.map((p) => ({
       name: p.name,
       status: p.status,
       priority: p.priority,
       progress: Math.max(0, Math.min(100, Number(p.progress) || 0)),
-      sourcePath: "",
-      index,
       id: p.id,
     }));
   }
@@ -85,9 +83,8 @@ export class DataService {
 
   /** Tasks live in the plugin's own data file. */
   async getTasks(): Promise<TaskItem[]> {
-    return this.settings.storedTasks.map((s, i) => ({
+    return this.settings.storedTasks.map((s) => ({
       name: s.text,
-      raw: s.text,
       done: s.done,
       pinned: s.pinned,
       priority: s.priority,
@@ -95,8 +92,6 @@ export class DataService {
       doneDate: s.doneDate,
       dueDate: s.dueDate,
       section: s.section,
-      path: "",
-      line: i,
       id: s.id,
     }));
   }

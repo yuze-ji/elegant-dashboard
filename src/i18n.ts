@@ -74,6 +74,21 @@ export interface Strings {
   focusSetTo: (m: number) => string;
   stopBeforeSwitch: string;
   switchedTo: (mode: string) => string;
+  clock: string;
+  am: string;
+  pm: string;
+  alarms: string;
+  addAlarm: string;
+  noAlarms: string;
+  alarmUntitled: string;
+  alarmLabelPlaceholder: string;
+  alarmEveryDay: string;
+  alarmOff: string;
+  alarmDelete: string;
+  alarmStop: string;
+  alarmInvalidTime: string;
+  alarmNextIn: (h: number, m: number) => string;
+  alarmRinging: (time: string, label: string) => string;
   weekdayShort: string[];
   weekdayFull: string[];
   monthNames: string[];
@@ -159,6 +174,22 @@ export const I18N: Record<Lang, Strings> = {
     focusSetTo: (m) => `⏱️ 已设置专注时间为 ${m} 分钟`,
     stopBeforeSwitch: "请先停止计时器再切换模式",
     switchedTo: (mode) => `已切换到 ${mode}`,
+    clock: "时钟",
+    am: "上午",
+    pm: "下午",
+    alarms: "闹钟",
+    addAlarm: "+ 添加",
+    noAlarms: "还没有闹钟，点「添加」创建一个",
+    alarmUntitled: "闹钟",
+    alarmLabelPlaceholder: "标签（可选）",
+    alarmEveryDay: "每天",
+    alarmOff: "已关闭",
+    alarmDelete: "删除闹钟",
+    alarmStop: "停止",
+    alarmInvalidTime: "请输入有效时间（HH:MM）",
+    alarmNextIn: (h, m) =>
+      h > 0 ? `${h} 小时 ${m} 分钟后响铃` : `${m} 分钟后响铃`,
+    alarmRinging: (time, label) => `⏰ ${time} — ${label}`,
     weekdayShort: ["一", "二", "三", "四", "五", "六", "日"],
     weekdayFull: ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"],
     monthNames: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
@@ -241,6 +272,21 @@ export const I18N: Record<Lang, Strings> = {
     focusSetTo: (m) => `⏱️ Focus time set to ${m} min`,
     stopBeforeSwitch: "Please stop the timer before switching mode",
     switchedTo: (mode) => `Switched to ${mode}`,
+    clock: "Clock",
+    am: "AM",
+    pm: "PM",
+    alarms: "Alarms",
+    addAlarm: "+ Add",
+    noAlarms: "No alarms yet — hit Add to create one",
+    alarmUntitled: "Alarm",
+    alarmLabelPlaceholder: "Label (optional)",
+    alarmEveryDay: "Every day",
+    alarmOff: "Off",
+    alarmDelete: "Delete alarm",
+    alarmStop: "Stop",
+    alarmInvalidTime: "Enter a valid time (HH:MM)",
+    alarmNextIn: (h, m) => (h > 0 ? `rings in ${h}h ${m}m` : `rings in ${m}m`),
+    alarmRinging: (time, label) => `⏰ ${time} — ${label}`,
     weekdayShort: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     weekdayFull: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
     monthNames: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],

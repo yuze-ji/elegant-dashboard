@@ -1,7 +1,8 @@
 import { Notice } from "obsidian";
 import { DashboardSettings } from "./types";
-import { toKey } from "./dates";
+import { addDays, startOfDay, toKey } from "./dates";
 import { Strings } from "./i18n";
+import { Ticker } from "./ticker";
 
 export type FocusMode = "countdown" | "accumulate";
 
@@ -20,9 +21,18 @@ export class FocusEngine {
   elapsed = 0;
   /** Seconds counted but not yet written to the focus log. */
   private unsaved = 0;
+  /** Calendar day (YYYY-MM-DD) that `unsaved` should be banked under. */
+  private unsavedDayKey: string = toKey(new Date());
   /** Minutes already banked during the current run, for the completion notice. */
   private sessionMinutes = 0;
-  private intervalId: number | null = null;
+  private ticker: Ticker | null = null;
+  /**
+   * Wall-clock time of the previous tick. Ticks are counted by elapsed real
+   * time rather than "+1 second per tick" so a delayed or coalesced tick (the
+   * Obsidian window regaining focus after being hidden) still banks the actual
+   * time that passed instead of quietly losing it.
+   */
+  private lastTickMs: number | null = null;
   private listeners = new Set<() => void>();
 
   constructor(
@@ -66,12 +76,16 @@ export class FocusEngine {
       .reduce((s, [, v]) => s + v, 0);
   }
 
-  /** Writes whole elapsed minutes into the focus log, keeping the remainder. */
+  /**
+   * Writes whole elapsed minutes into the focus log, keeping the remainder.
+   * Banks under `unsavedDayKey` — the day those seconds were earned on — not
+   * "today", so a session flushed after midnight does not credit the wrong day.
+   */
   private async flush(): Promise<number> {
     const minutes = Math.floor(this.unsaved / 60);
     if (minutes <= 0) return 0;
     this.unsaved -= minutes * 60;
-    const key = toKey(new Date());
+    const key = this.unsavedDayKey;
     this.settings.focusLog[key] = (this.settings.focusLog[key] || 0) + minutes;
     this.sessionMinutes += minutes;
     await this.save();
@@ -91,39 +105,75 @@ export class FocusEngine {
   start() {
     if (this.running) return;
     this.running = true;
-    this.intervalId = window.setInterval(() => this.tick(), 1000);
+    this.lastTickMs = Date.now();
+    // Idle time before this start() (e.g. the engine sitting untouched
+    // overnight) must not be misread as elapsed session time on resume.
+    if (this.unsaved === 0) this.unsavedDayKey = toKey(new Date());
+    this.ticker = new Ticker();
+    this.ticker.start(() => void this.tick());
     this.emit();
   }
 
   private async tick() {
-    this.unsaved++;
+    const now = Date.now();
+    // Whole seconds since the previous tick — normally 1, but larger after a
+    // throttled or coalesced tick, so no real time goes uncounted.
+    const from = this.lastTickMs ?? now - 1000;
+    const deltaSeconds = Math.round((now - from) / 1000);
+    this.lastTickMs = now;
+    if (deltaSeconds <= 0) return;
 
+    // The countdown / count-up display doesn't care which calendar day the
+    // seconds fall on, so it advances by the full delta in one shot.
     if (this.mode === "countdown") {
-      if (this.remaining > 0) this.remaining--;
-      // Bank every full minute, so today's total climbs during the session
-      // instead of jumping only when the countdown ends.
-      if (this.unsaved >= 60) void this.flush();
-      if (this.remaining <= 0) {
-        this.stopInterval();
-        this.running = false;
-        await this.flush();
-        new Notice(this.strings().focusDone(this.sessionMinutes));
-        this.sessionMinutes = 0;
-      }
+      this.remaining = Math.max(0, this.remaining - deltaSeconds);
     } else {
-      this.elapsed++;
-      // Persist every full minute so a crash cannot lose a long session.
-      if (this.unsaved >= 60) void this.flush();
+      this.elapsed += deltaSeconds;
+    }
+
+    // The *log*, on the other hand, must not dump a whole session (or a big
+    // catch-up jump after the window was hidden overnight) onto whichever day
+    // happens to be current when it is flushed — so bank it one midnight at a
+    // time. In the common case (deltaSeconds small, no boundary crossed) this
+    // loop runs once.
+    let cursor = from;
+    let left = deltaSeconds;
+    while (left > 0) {
+      const dayKey = toKey(new Date(cursor));
+      if (dayKey !== this.unsavedDayKey) {
+        // Whatever sub-minute remainder was pending belongs to the day that
+        // is ending; once mixed with the new day's seconds it can no longer
+        // be attributed correctly, so it is dropped (at most 59s) rather than
+        // silently relabelled onto the wrong day.
+        this.unsaved = 0;
+        this.unsavedDayKey = dayKey;
+      }
+      const nextMidnight = startOfDay(addDays(new Date(cursor), 1)).getTime();
+      const untilMidnight = Math.max(1, Math.round((nextMidnight - cursor) / 1000));
+      const chunk = Math.min(left, untilMidnight);
+      this.unsaved += chunk;
+      cursor += chunk * 1000;
+      left -= chunk;
+    }
+    // Bank every full minute, so today's total climbs during the session
+    // instead of jumping only when the countdown ends.
+    if (this.unsaved >= 60) void this.flush();
+
+    if (this.mode === "countdown" && this.remaining <= 0) {
+      this.stopInterval();
+      this.running = false;
+      await this.flush();
+      new Notice(this.strings().focusDone(this.sessionMinutes));
+      this.sessionMinutes = 0;
     }
 
     this.emit();
   }
 
   private stopInterval() {
-    if (this.intervalId !== null) {
-      window.clearInterval(this.intervalId);
-      this.intervalId = null;
-    }
+    this.ticker?.stop();
+    this.ticker = null;
+    this.lastTickMs = null;
   }
 
   async pause() {
@@ -143,6 +193,7 @@ export class FocusEngine {
     this.remaining = this.targetSeconds;
     this.elapsed = 0;
     this.unsaved = 0;
+    this.unsavedDayKey = toKey(new Date());
     this.sessionMinutes = 0;
     if (wasAccumulate && banked > 0) {
       new Notice(this.strings().focusSaved(banked));
@@ -160,6 +211,7 @@ export class FocusEngine {
     this.remaining = this.targetSeconds;
     this.elapsed = 0;
     this.unsaved = 0;
+    this.unsavedDayKey = toKey(new Date());
     this.sessionMinutes = 0;
     this.emit();
     return true;

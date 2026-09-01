@@ -119,7 +119,7 @@ export class TaskEditModal extends Modal {
   }
 }
 
-export type ProjectDraft = Omit<ProjectItem, "sourcePath" | "index" | "id">;
+export type ProjectDraft = Omit<ProjectItem, "id">;
 
 export class ProjectEditModal extends Modal {
   private draft: ProjectDraft;

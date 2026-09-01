@@ -1,9 +1,10 @@
-import { ItemView, TFile, WorkspaceLeaf, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import type DashboardPlugin from "./main";
 import { Ctx } from "./ui";
 import { MODULE_ORDER, ModuleId } from "./types";
 import { BUNDLED_BACKGROUND } from "./settings";
 import { renderActivity } from "./components/activity";
+import { renderClock } from "./components/clock";
 import { renderFocusTimer } from "./components/focusTimer";
 import { renderProjects } from "./components/projects";
 import { renderTaskboard } from "./components/taskboard";
@@ -95,6 +96,7 @@ export class DashboardView extends ItemView {
       save: () => this.plugin.saveSettings(),
       refresh: () => void this.render(),
       onCleanup: (fn) => this.cleanups.push(fn),
+      selfId: this.plugin.manifest.id,
     };
 
     container.style.setProperty("--ed-card-alpha", String(settings.cardOpacity));
@@ -142,6 +144,7 @@ export class DashboardView extends ItemView {
       guard("focusHistory", () => renderFocusHistory(grid, ctx, this.plugin.focus));
     } else {
       const renderers: Record<ModuleId, () => void> = {
+        clock: () => renderClock(grid, ctx, this.plugin.alarms),
         activity: () => renderActivity(grid, ctx, activity),
         focus: () => renderFocusTimer(grid, ctx, this.plugin.focus),
         // The overview is a report: editing lives on the Projects / Tasks pages.

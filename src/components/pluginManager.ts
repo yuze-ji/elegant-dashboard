@@ -10,8 +10,18 @@ interface PluginManifestLike {
 interface PluginsApi {
   manifests: Record<string, PluginManifestLike>;
   enabledPlugins: Set<string>;
-  enablePlugin: (id: string) => Promise<void>;
-  disablePlugin: (id: string) => Promise<void>;
+  /**
+   * The "AndSave" variants, not the bare `enablePlugin`/`disablePlugin` — the
+   * bare pair only loads/unloads the runtime instance and never touches
+   * `enabledPlugins` or the on-disk config. Using them here made the toggle
+   * a one-way door: the first click actually disabled the plugin, but with
+   * `enabledPlugins` never updated, every click after that re-read the same
+   * stale "still enabled" state and called disable again — the plugin could
+   * never be turned back on from this list, and the disable did not survive
+   * a restart either since it was never persisted.
+   */
+  enablePluginAndSave: (id: string) => Promise<boolean>;
+  disablePluginAndSave: (id: string) => Promise<void>;
 }
 
 export function renderPluginManager(parent: HTMLElement, ctx: Ctx) {
@@ -28,9 +38,13 @@ export function renderPluginManager(parent: HTMLElement, ctx: Ctx) {
 
   const draw = () => {
     list.empty();
-    const ids = Object.keys(plugins.manifests).sort((a, b) =>
-      plugins.manifests[a].name.localeCompare(plugins.manifests[b].name)
-    );
+    // Disabling this plugin from inside its own UI would tear down the very
+    // view rendering the toggle mid-click (timers stopped, engines torn down,
+    // but the leaf stays open referencing them) — so it never gets a row here.
+    // Turning it off is one click away in Community Plugins either way.
+    const ids = Object.keys(plugins.manifests)
+      .filter((id) => id !== ctx.selfId)
+      .sort((a, b) => plugins.manifests[a].name.localeCompare(plugins.manifests[b].name));
     for (const id of ids) {
       const manifest = plugins.manifests[id];
       const item = list.createDiv({ cls: "ed-plugin-item" });
@@ -50,8 +64,8 @@ export function renderPluginManager(parent: HTMLElement, ctx: Ctx) {
 
       toggle.onclick = async () => {
         try {
-          if (plugins.enabledPlugins.has(id)) await plugins.disablePlugin(id);
-          else await plugins.enablePlugin(id);
+          if (plugins.enabledPlugins.has(id)) await plugins.disablePluginAndSave(id);
+          else await plugins.enablePluginAndSave(id);
         } catch (err) {
           new Notice(`Failed to toggle ${manifest.name}: ${String(err)}`);
         }

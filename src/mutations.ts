@@ -129,7 +129,7 @@ function findProject(store: Store, project: ProjectItem): StoredProject | null {
 export async function updateProject(
   store: Store,
   project: ProjectItem,
-  patch: Partial<Omit<ProjectItem, "sourcePath" | "index" | "id">>
+  patch: Partial<Omit<ProjectItem, "id">>
 ): Promise<boolean> {
   const target = findProject(store, project);
   if (!target) return missing();

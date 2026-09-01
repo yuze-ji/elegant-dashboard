@@ -25,11 +25,19 @@ The dashboard has four in-plugin pages — nothing opens a markdown tab.
 
 ### Modules
 
+- **Flip clock & alarms** — a flip-card clock (12/24 hour, optional seconds and
+  date) over an alarm list: per-alarm time, label, weekday repeat and on/off,
+  with a countdown to the next ring. Alarms are checked from a Web Worker,
+  because Chromium freezes main-thread timers as soon as the Obsidian window is
+  hidden — the exact moment an alarm most needs to fire. A ring shows a notice
+  and a stop banner, chimes for up to a minute, and never fires on catch-up more
+  than five minutes late.
 - **Note activity heatmap** — week / month / year views. Hovering a day shows
   file activity, focus minutes and the notes created that day.
-- **Focus timer** — countdown and count-up modes, canvas dial. Runs in the
-  plugin, so it keeps going when the tab is closed, and banks every whole minute
-  so a crash cannot lose a long session.
+- **Focus timer** — countdown and count-up modes, drawn either as the canvas
+  dial or as flip-clock digits with a progress bar. Runs in the plugin, so it
+  keeps going when the tab is closed, and banks every whole minute so a crash
+  cannot lose a long session.
 - **Projects board** — click the progress bar to set progress, click the status
   chip to cycle it, pencil to edit.
 - **Taskboard** — completion rings against daily / weekly / monthly targets.

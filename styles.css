@@ -1469,3 +1469,365 @@
   .ed-week-row { flex-wrap: wrap; }
   .ed-week-card { min-width: 60px; }
 }
+
+/* ------------------------------------------------- flip clock & alarms */
+
+.ed-flip-row {
+  --ed-flip-h: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ed-flip-row.is-compact {
+  --ed-flip-h: 64px;
+  gap: 6px;
+}
+
+.ed-flip-group { display: flex; gap: 4px; }
+
+.ed-flip {
+  position: relative;
+  width: calc(var(--ed-flip-h) * 0.68);
+  height: var(--ed-flip-h);
+  /* Shallow perspective keeps the leaf from looking like it swings away. */
+  perspective: 320px;
+  font-size: calc(var(--ed-flip-h) * 0.6);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-normal);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.16));
+}
+
+.ed-flip-half {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  background: var(--background-secondary);
+  border: 1px solid var(--ed-green-border);
+}
+
+.ed-flip-half.is-top {
+  top: 0;
+  border-radius: var(--ed-radius-md) var(--ed-radius-md) 0 0;
+  border-bottom: none;
+  /* Hairline seam where the two halves meet. */
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.ed-flip-half.is-bottom {
+  bottom: 0;
+  border-radius: 0 0 var(--ed-radius-md) var(--ed-radius-md);
+  border-top: none;
+}
+
+/* One full-height glyph per half, shifted so each half shows its slice. */
+.ed-flip-text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--ed-flip-h);
+  line-height: var(--ed-flip-h);
+  text-align: center;
+}
+
+.ed-flip-half.is-top .ed-flip-text { top: 0; }
+.ed-flip-half.is-bottom .ed-flip-text { top: calc(var(--ed-flip-h) / -2); }
+
+.ed-flip-half.is-leaf {
+  z-index: 2;
+  backface-visibility: hidden;
+}
+
+.ed-flip-half.is-front {
+  transform-origin: bottom;
+  animation: ed-flip-down 0.3s ease-in forwards;
+}
+
+.ed-flip-half.is-back {
+  transform-origin: top;
+  transform: rotateX(90deg);
+  animation: ed-flip-up 0.3s 0.3s ease-out forwards;
+}
+
+@keyframes ed-flip-down {
+  from { transform: rotateX(0deg); }
+  to { transform: rotateX(-90deg); }
+}
+
+@keyframes ed-flip-up {
+  from { transform: rotateX(90deg); }
+  to { transform: rotateX(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ed-flip-half.is-leaf { display: none; }
+  .ed-flip-sep.is-blinking { animation: none; }
+}
+
+.ed-flip-sep {
+  font-size: calc(var(--ed-flip-h) * 0.4);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--interactive-accent);
+  padding-bottom: calc(var(--ed-flip-h) * 0.06);
+}
+
+.ed-flip-sep.is-blinking { animation: ed-blink 2s steps(1, end) infinite; }
+
+/* Only a half-fade: against a busy background image a 0.25 colon disappears. */
+@keyframes ed-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0.45; }
+}
+
+/* ---- clock module ---- */
+
+.ed-clock-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0 16px;
+}
+
+.ed-clock-meridiem {
+  align-self: flex-start;
+  margin-top: calc(var(--ed-flip-h, 96px) * 0.12);
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--interactive-accent);
+}
+
+.ed-clock-date {
+  font-size: 0.86em;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+/* ---- alarms ---- */
+
+.ed-alarm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.ed-alarm-title {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--interactive-accent);
+}
+
+.ed-alarm-head .ed-btn,
+.ed-alarm-ring .ed-btn { flex: 0 0 auto; }
+
+.ed-alarm-ring { display: none; }
+
+.ed-alarm-ring.is-active {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--ed-radius-md);
+  background: rgba(232, 142, 142, 0.16);
+  border: 1px solid rgba(232, 142, 142, 0.5);
+  animation: ed-alarm-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes ed-alarm-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 142, 142, 0.35); }
+  50% { box-shadow: 0 0 0 8px rgba(232, 142, 142, 0); }
+}
+
+.ed-alarm-ring-text { font-weight: 700; }
+
+.ed-alarm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ed-alarm-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: var(--ed-radius-md);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  transition: opacity 0.2s ease;
+}
+
+.ed-alarm-row.is-off { opacity: 0.5; }
+
+.ed-alarm-time {
+  width: 112px;
+  padding: 2px 4px;
+  background: transparent;
+  border: none;
+  font-size: 1.3em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-normal);
+}
+
+.ed-alarm-time:focus {
+  outline: 1px solid var(--interactive-accent);
+  border-radius: var(--ed-radius-sm);
+}
+
+.ed-alarm-main {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Two classes deep on purpose: Obsidian's `input[type="text"]` rule outweighs
+   a single class and would put a filled box around the label. */
+.ed-alarm-row .ed-alarm-label {
+  width: 100%;
+  height: auto;
+  padding: 2px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 0.86em;
+  color: var(--text-normal);
+}
+
+.ed-alarm-row .ed-alarm-label:hover {
+  border-bottom-color: var(--background-modifier-border);
+}
+
+.ed-alarm-row .ed-alarm-label:focus {
+  outline: none;
+  box-shadow: none;
+  border-bottom-color: var(--interactive-accent);
+}
+
+.ed-alarm-days {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.ed-alarm-day {
+  /* A pill, not a circle: the English weekday labels are three characters. */
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.64em;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: none;
+  transition: all 0.15s ease;
+}
+
+.ed-alarm-day:hover { border-color: var(--interactive-accent); }
+
+.ed-alarm-day.is-on {
+  background: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-weight: 700;
+}
+
+.ed-alarm-next {
+  font-size: 0.7em;
+  color: var(--text-muted);
+}
+
+.ed-alarm-toggle { flex: 0 0 auto; }
+
+.ed-alarm-del {
+  flex: 0 0 auto;
+  opacity: 0.55;
+}
+
+.ed-alarm-del:hover {
+  opacity: 1;
+  color: #e88e8e;
+}
+
+/* ---- focus timer, flip style ---- */
+
+.ed-focus-flip {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.ed-focus-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--background-modifier-border);
+  overflow: hidden;
+}
+
+.ed-focus-bar-fill {
+  width: 0;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--interactive-accent);
+  transition: width 0.4s ease;
+}
+
+.ed-focus-flip-sub {
+  min-height: 1em;
+  font-size: 0.72em;
+  color: var(--text-muted);
+}
+
+/* ---- glass treatment ---- */
+
+.elegant-dashboard.is-glass .ed-flip-half,
+.elegant-dashboard.is-glass .ed-alarm-row {
+  background: var(--ed-glass-inner);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.elegant-dashboard.is-glass .ed-flip-text,
+.elegant-dashboard.is-glass .ed-flip-sep,
+.elegant-dashboard.is-glass .ed-alarm-time,
+.elegant-dashboard.is-glass .ed-alarm-ring-text,
+.elegant-dashboard.is-glass .ed-alarm-title {
+  color: var(--ed-ink);
+  text-shadow: var(--ed-halo);
+}
+
+.elegant-dashboard.is-glass .ed-clock-date,
+.elegant-dashboard.is-glass .ed-alarm-next,
+.elegant-dashboard.is-glass .ed-alarm-label,
+.elegant-dashboard.is-glass .ed-alarm-day:not(.is-on),
+.elegant-dashboard.is-glass .ed-focus-flip-sub {
+  color: var(--ed-ink-soft);
+  text-shadow: var(--ed-halo);
+}
+
+@media (max-width: 620px) {
+  .ed-flip-row { --ed-flip-h: 64px; }
+  .ed-alarm-time { width: 96px; font-size: 1.1em; }
+}

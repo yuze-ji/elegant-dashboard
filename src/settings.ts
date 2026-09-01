@@ -10,6 +10,7 @@ import { MODULE_ORDER, ModuleId } from "./types";
 export const BUNDLED_BACKGROUND = "@bundled";
 
 const MODULE_LABELS: Record<ModuleId, { cn: string; en: string }> = {
+  clock: { cn: "翻页时钟与闹钟", en: "Flip clock & alarms" },
   activity: { cn: "笔记活动热力图", en: "Note activity heatmap" },
   focus: { cn: "专注计时器", en: "Focus timer" },
   projects: { cn: "项目概览", en: "Projects board" },
@@ -49,42 +50,6 @@ export class DashboardSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
             this.plugin.refreshViews();
             this.display();
-          })
-      );
-
-    new Setting(containerEl)
-      .setName(cn ? "数据文件夹" : "Dashboard folder")
-      .setDesc(
-        cn
-          ? "从该文件夹读取任务与项目数据（留空表示整个库）"
-          : "Folder scanned for task and project notes (empty = whole vault)"
-      )
-      .addText((tx) =>
-        tx
-          .setPlaceholder("Dashboard")
-          .setValue(this.plugin.settings.dashboardFolder)
-          .onChange(async (v) => {
-            this.plugin.settings.dashboardFolder = v.trim();
-            await this.plugin.saveSettings();
-            this.plugin.refreshViews();
-          })
-      );
-
-    new Setting(containerEl)
-      .setName(cn ? "文件名过滤" : "Filename filter")
-      .setDesc(
-        cn
-          ? "只解析文件名包含该字符串的笔记（留空表示全部）"
-          : "Only parse notes whose name contains this text (empty = all)"
-      )
-      .addText((tx) =>
-        tx
-          .setPlaceholder("List")
-          .setValue(this.plugin.settings.taskFileFilter)
-          .onChange(async (v) => {
-            this.plugin.settings.taskFileFilter = v.trim();
-            await this.plugin.saveSettings();
-            this.plugin.refreshViews();
           })
       );
 
@@ -170,6 +135,72 @@ export class DashboardSettingTab extends PluginSettingTab {
       },
       1,
       180
+    );
+
+    new Setting(containerEl).setName(cn ? "时钟与闹钟" : "Clock & alarms").setHeading();
+
+    new Setting(containerEl)
+      .setName(cn ? "专注计时器样式" : "Focus timer style")
+      .setDesc(
+        cn
+          ? "圆环 = 原来的进度盘；翻页 = 翻页时钟数字加进度条"
+          : "Dial = the classic ring; Flip = flip-clock digits with a progress bar"
+      )
+      .addDropdown((d) =>
+        d
+          .addOption("dial", cn ? "圆环" : "Dial")
+          .addOption("flip", cn ? "翻页" : "Flip")
+          .setValue(this.plugin.settings.focusClockStyle)
+          .onChange(async (v) => {
+            this.plugin.settings.focusClockStyle = v === "flip" ? "flip" : "dial";
+            await this.plugin.saveSettings();
+            this.plugin.refreshViews();
+          })
+      );
+
+    const clockToggle = (
+      name: string,
+      desc: string,
+      get: () => boolean,
+      set: (v: boolean) => void
+    ) => {
+      new Setting(containerEl)
+        .setName(name)
+        .setDesc(desc)
+        .addToggle((tg) =>
+          tg.setValue(get()).onChange(async (v) => {
+            set(v);
+            await this.plugin.saveSettings();
+            this.plugin.refreshViews();
+          })
+        );
+    };
+
+    clockToggle(
+      cn ? "24 小时制" : "24-hour clock",
+      cn ? "关闭则显示 12 小时制与上午/下午" : "Off shows a 12-hour clock with AM/PM",
+      () => this.plugin.settings.clock24h,
+      (v) => (this.plugin.settings.clock24h = v)
+    );
+    clockToggle(
+      cn ? "显示秒" : "Show seconds",
+      "",
+      () => this.plugin.settings.clockSeconds,
+      (v) => (this.plugin.settings.clockSeconds = v)
+    );
+    clockToggle(
+      cn ? "显示日期与星期" : "Show date and weekday",
+      "",
+      () => this.plugin.settings.clockShowDate,
+      (v) => (this.plugin.settings.clockShowDate = v)
+    );
+    clockToggle(
+      cn ? "闹钟提示音" : "Alarm sound",
+      cn
+        ? "响铃时播放提示音，最多持续 1 分钟；关闭则只弹通知"
+        : "Chime while ringing, for up to a minute; off shows only the notice",
+      () => this.plugin.settings.alarmSound,
+      (v) => (this.plugin.settings.alarmSound = v)
     );
 
     new Setting(containerEl).setName(cn ? "外观" : "Appearance").setHeading();
