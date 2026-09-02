@@ -3,7 +3,7 @@ import { AlarmEngine, nextRingAt, normalizeTime } from "../alarm";
 import { isoWeekday } from "../dates";
 import { Strings } from "../i18n";
 import { AlarmItem } from "../types";
-import { Ctx, card } from "../ui";
+import { Ctx, card, notifyUndo } from "../ui";
 import { flipGroup, flipSeparator } from "./flip";
 
 /** Fast enough that a second flips within a frame or two of the real tick. */
@@ -168,7 +168,11 @@ function renderRow(
   const del = row.createEl("button", { cls: "ed-icon-btn ed-alarm-del" });
   setIcon(del, "trash-2");
   del.setAttr("aria-label", t.alarmDelete);
-  del.onclick = () => void engine.remove(alarm.id);
+  del.onclick = async () => {
+    const removed = await engine.remove(alarm.id);
+    if (!removed) return;
+    notifyUndo(t.alarmDeleted, t.undo, () => engine.restore(removed.item, removed.index));
+  };
 
   return { alarm, el: hint };
 }

@@ -1,4 +1,4 @@
-import { App } from "obsidian";
+import { App, Notice } from "obsidian";
 import { DataService } from "./data";
 import { Strings } from "./i18n";
 import { DashboardSettings } from "./types";
@@ -70,6 +70,28 @@ export class HoverTooltip {
     this.el.style.left = `${Math.max(8, x)}px`;
     this.el.style.top = `${Math.max(8, y)}px`;
   }
+}
+
+/**
+ * Every delete in this plugin is final the moment it happens — there is no
+ * version history or trash to fish it back out of, unlike a deleted line in
+ * a markdown note. This is the standard shape for softening that: call it
+ * right after a delete has already gone through, with a closure that puts
+ * the item back. `noticeEl` is a documented part of Obsidian's `Notice`
+ * class, so this needs no workaround to attach a button to it.
+ */
+export function notifyUndo(
+  message: string,
+  undoLabel: string,
+  restore: () => void | Promise<void>
+): void {
+  const notice = new Notice(message, 6000);
+  const btn = notice.noticeEl.createEl("button", { cls: "ed-undo-btn", text: undoLabel });
+  btn.onclick = async (e) => {
+    e.stopPropagation();
+    notice.hide();
+    await restore();
+  };
 }
 
 export const TAG_COLORS = [

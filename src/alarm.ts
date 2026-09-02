@@ -1,7 +1,7 @@
 import { Notice } from "obsidian";
 import { AlarmItem, DashboardSettings, newId } from "./types";
 import { Strings } from "./i18n";
-import { isoWeekday, toKey } from "./dates";
+import { daysBetween, isoWeekday, startOfDay, toKey } from "./dates";
 import { Ticker } from "./ticker";
 
 /** "YYYY-MM-DDTHH:MM" — the granularity at which an alarm may fire once. */
@@ -159,6 +159,16 @@ export class AlarmEngine {
     private strings: () => Strings
   ) {}
 
+  /**
+   * Repoints this engine at a *replaced* settings object — e.g. after
+   * `importSettings` swaps in a whole new one — so the background tick keeps
+   * checking real data instead of the object from before the import.
+   * Ordinary edits mutate the existing object in place and don't need this.
+   */
+  updateSettings(settings: DashboardSettings) {
+    this.settings = settings;
+  }
+
   load() {
     if (this.ticker) return;
     this.lastCheck = Date.now();
@@ -219,11 +229,21 @@ export class AlarmEngine {
     if (!silent) this.emit();
   }
 
-  async remove(id: string): Promise<void> {
-    const i = this.settings.alarms.findIndex((a) => a.id === id);
-    if (i < 0) return;
+  /** Returns the removed alarm and its position, so a caller can offer undo. */
+  async remove(id: string): Promise<{ item: AlarmItem; index: number } | null> {
+    const index = this.settings.alarms.findIndex((a) => a.id === id);
+    if (index < 0) return null;
     if (this.ringing?.id === id) this.dismiss();
-    this.settings.alarms.splice(i, 1);
+    const [item] = this.settings.alarms.splice(index, 1);
+    await this.save();
+    this.emit();
+    return { item, index };
+  }
+
+  /** Re-inserts an alarm removed by `remove`, in its original position. */
+  async restore(item: AlarmItem, index: number): Promise<void> {
+    const at = Math.min(index, this.settings.alarms.length);
+    this.settings.alarms.splice(at, 0, item);
     await this.save();
     this.emit();
   }
@@ -232,6 +252,12 @@ export class AlarmEngine {
     const now = Date.now();
     const from = Math.max(this.lastCheck, now - CATCH_UP_MS);
     this.lastCheck = now;
+
+    // Deadline reminders share this same background-safe tick rather than
+    // running their own Worker — one alarm ringing does not make a due
+    // reminder any less worth surfacing, so this runs regardless of `ringing`.
+    void this.checkDeadlineReminders();
+
     if (this.ringing) return;
 
     for (const alarm of this.settings.alarms) {
@@ -246,6 +272,30 @@ export class AlarmEngine {
       this.ring(alarm);
       return;
     }
+  }
+
+  /**
+   * One-time, quieter cousin of the alarm ring: a plain Notice, no sound, no
+   * banner to dismiss. Fires as soon as the day count drops to
+   * `remindDaysBefore` *or under* — not on an exact match — so a reminder
+   * whose window was missed while the app was closed still lands late
+   * instead of never, the same trade-off `dueBetween`'s catch-up window makes
+   * for alarms. `overdue` deadlines (days < 0) are excluded: reminding about
+   * something already past due is a different feature than this one.
+   */
+  private async checkDeadlineReminders() {
+    const today = startOfDay(new Date());
+    let changed = false;
+    for (const d of this.settings.deadlines) {
+      if (d.remindDaysBefore == null || d.reminded) continue;
+      const days = daysBetween(today, new Date(d.date + "T00:00:00"));
+      if (days < 0 || days > d.remindDaysBefore) continue;
+      d.reminded = true;
+      changed = true;
+      const t = this.strings();
+      new Notice(t.deadlineReminderNotice(d.title, days), 10_000);
+    }
+    if (changed) await this.save();
   }
 
   private ring(alarm: AlarmItem) {

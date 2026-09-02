@@ -96,11 +96,25 @@ export interface Strings {
   deadlineToday: string;
   deadlineDaysLeft: (n: number) => string;
   deadlineOverdue: (n: number) => string;
+  deadlineRemindNone: string;
+  deadlineRemindSameDay: string;
+  deadlineRemindNDays: (n: number) => string;
+  deadlineReminderNotice: (title: string, daysLeft: number) => string;
   habits: string;
   noHabits: string;
   addHabit: string;
   habitAddPlaceholder: string;
   habitDelete: string;
+  habitTargetDaily: string;
+  habitTargetPerWeek: (n: number) => string;
+  habitWeekProgress: (done: number, target: number) => string;
+  habitStreakWeeks: (n: number) => string;
+  undo: string;
+  taskDeleted: string;
+  projectDeleted: string;
+  deadlineDeletedNotice: string;
+  habitDeleted: string;
+  alarmDeleted: string;
   weekdayShort: string[];
   weekdayFull: string[];
   monthNames: string[];
@@ -209,11 +223,28 @@ export const I18N: Record<Lang, Strings> = {
     deadlineToday: "今天",
     deadlineDaysLeft: (n) => `还有 ${n} 天`,
     deadlineOverdue: (n) => `已过期 ${n} 天`,
+    deadlineRemindNone: "不提醒",
+    deadlineRemindSameDay: "当天提醒",
+    deadlineRemindNDays: (n) => `提前 ${n} 天`,
+    deadlineReminderNotice: (title, daysLeft) =>
+      daysLeft === 0
+        ? `⏳ 「${title}」就是今天`
+        : `⏳ 「${title}」还有 ${daysLeft} 天`,
     habits: "习惯追踪",
     noHabits: "还没有习惯，添加一个开始打卡吧",
     addHabit: "+ 添加",
     habitAddPlaceholder: "习惯名称…",
     habitDelete: "删除习惯",
+    habitTargetDaily: "每天",
+    habitTargetPerWeek: (n) => `每周 ${n} 次`,
+    habitWeekProgress: (done, target) => `本周 ${done}/${target}`,
+    habitStreakWeeks: (n) => `🔥 连续 ${n} 周`,
+    undo: "撤销",
+    taskDeleted: "已删除任务",
+    projectDeleted: "已删除项目",
+    deadlineDeletedNotice: "已删除日程",
+    habitDeleted: "已删除习惯",
+    alarmDeleted: "已删除闹钟",
     weekdayShort: ["一", "二", "三", "四", "五", "六", "日"],
     weekdayFull: ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"],
     monthNames: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
@@ -318,11 +349,28 @@ export const I18N: Record<Lang, Strings> = {
     deadlineToday: "Today",
     deadlineDaysLeft: (n) => `${n} day${n === 1 ? "" : "s"} left`,
     deadlineOverdue: (n) => `${n} day${n === 1 ? "" : "s"} overdue`,
+    deadlineRemindNone: "No reminder",
+    deadlineRemindSameDay: "Same day",
+    deadlineRemindNDays: (n) => `${n} day${n === 1 ? "" : "s"} before`,
+    deadlineReminderNotice: (title, daysLeft) =>
+      daysLeft === 0
+        ? `⏳ "${title}" is due today`
+        : `⏳ "${title}" due in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`,
     habits: "Habits",
     noHabits: "No habits yet — add one to start tracking",
     addHabit: "+ Add",
     habitAddPlaceholder: "Habit name…",
     habitDelete: "Delete habit",
+    habitTargetDaily: "Daily",
+    habitTargetPerWeek: (n) => `${n}x / week`,
+    habitWeekProgress: (done, target) => `${done}/${target} this week`,
+    habitStreakWeeks: (n) => `🔥 ${n} week${n === 1 ? "" : "s"}`,
+    undo: "Undo",
+    taskDeleted: "Task deleted",
+    projectDeleted: "Project deleted",
+    deadlineDeletedNotice: "Deadline deleted",
+    habitDeleted: "Habit deleted",
+    alarmDeleted: "Alarm deleted",
     weekdayShort: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     weekdayFull: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
     monthNames: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],

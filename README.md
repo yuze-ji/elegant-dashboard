@@ -36,12 +36,16 @@ The dashboard has five in-plugin pages — nothing opens a markdown tab.
 - **Deadlines** — for things with a date, not a recurring schedule (exams,
   submissions). Colour-coded by urgency (today / soon / this week / later /
   overdue). The Overview card is a plain sorted list; the dedicated Deadlines
-  page shows the same data as a month calendar instead.
+  page shows the same data as a month calendar instead. Each one can carry an
+  optional one-time reminder (same day / 1 / 3 / 7 days before), delivered as
+  a quiet Notice from the same background-safe tick the alarms use.
 - **Note activity heatmap** — week / month / year views. Hovering a day shows
   file activity, focus minutes and the notes created that day.
 - **Habit tracker** — a per-habit strip of the last 14 days, click any day to
-  toggle it (not just today, so a missed check-in can be backfilled), with a
-  streak count that mirrors the focus-history streak logic.
+  toggle it (not just today, so a missed check-in can be backfilled). Each
+  habit is either daily (streak = consecutive days) or a weekly target like
+  "3x a week" (streak = consecutive weeks the target was met, with a
+  this-week progress badge) — not every habit is meant to happen every day.
 - **Focus timer** — countdown and count-up modes, drawn either as the canvas
   dial or as flip-clock digits with a progress bar. Runs in the plugin, so it
   keeps going when the tab is closed, and banks every whole minute so a crash
@@ -71,9 +75,20 @@ The dashboard has five in-plugin pages — nothing opens a markdown tab.
 
 ## Data storage
 
-Tasks and projects live in the plugin's `data.json`, not in markdown notes.
-Every record carries a UUID, so edits and deletions are located by id rather
-than by line number.
+Tasks, projects, deadlines, habits and alarms all live in the plugin's
+`data.json`, not in markdown notes. Every record carries a UUID, so edits and
+deletions are located by id rather than by line number.
+
+Two safety nets, since none of that has version history the way a note does:
+
+- **Undo** — every delete (task, project, deadline, habit, alarm) shows a
+  Notice with an Undo button for a few seconds before it's gone for good.
+- **Backup** — *Settings → Data storage* has Export / Import buttons.
+  Export downloads the current data as a JSON file; Import replaces
+  everything with a previously exported file. Both go through the plugin's
+  own settings shape, so an older backup missing a newer field (added in a
+  later release) still imports cleanly — the gap is filled with defaults
+  rather than rejected.
 
 This is a deliberate trade-off:
 
@@ -134,7 +149,10 @@ Requires Obsidian 1.6 or newer.
 
 ## Usage
 
-Open the dashboard from the ribbon icon or the command palette.
+Open the dashboard from the ribbon icon or the command palette. *Settings →
+General → Open on startup* opens it automatically once Obsidian has restored
+the previous session's layout — off by default, since a plugin silently
+taking over the workspace on every launch should be opt-in.
 
 | Command | What it does |
 | --- | --- |

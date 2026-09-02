@@ -1,8 +1,14 @@
-import { Notice, setIcon } from "obsidian";
+import { setIcon } from "obsidian";
 import { ProjectItem } from "../types";
-import { Ctx, card, empty } from "../ui";
+import { Ctx, card, empty, notifyUndo } from "../ui";
 import { ProjectDraft, ProjectEditModal } from "../modals";
-import { Store, addProject, deleteProject, updateProject } from "../mutations";
+import {
+  Store,
+  addProject,
+  deleteProject,
+  restoreProject,
+  updateProject,
+} from "../mutations";
 
 const storeOf = (ctx: Ctx): Store => ({ settings: ctx.settings, save: ctx.save });
 
@@ -106,10 +112,14 @@ function renderProjectCard(
         if (await updateProject(storeOf(ctx), p, draft)) ctx.refresh();
       },
       onDelete: async () => {
-        if (await deleteProject(storeOf(ctx), p)) {
-          new Notice(cn ? "已删除项目" : "Project deleted");
+        const store = storeOf(ctx);
+        const removed = await deleteProject(store, p);
+        if (!removed) return;
+        ctx.refresh();
+        notifyUndo(ctx.t.projectDeleted, ctx.t.undo, async () => {
+          await restoreProject(store, removed);
           ctx.refresh();
-        }
+        });
       },
     }).open();
   };

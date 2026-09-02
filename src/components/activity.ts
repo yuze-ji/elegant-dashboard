@@ -13,8 +13,11 @@ import {
 
 type ViewMode = "week" | "month" | "year";
 
-const CELL = 11;
-const GAP = 3;
+// Chunky, GitHub-heatmap-but-bigger cells rather than a dense dot grid — the
+// row scrolls horizontally (see .ed-scroll), so there's no ceiling forcing
+// 365 days into one screen width the way a fixed-size card would.
+const CELL = 20;
+const GAP = 5;
 const STEP = CELL + GAP;
 // The month strip is already offset by the weekday gutter via CSS margin-left,
 // so month labels position from 0 relative to the grid.

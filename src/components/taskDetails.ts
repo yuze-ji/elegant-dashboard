@@ -1,6 +1,6 @@
-import { Notice, setIcon } from "obsidian";
+import { setIcon } from "obsidian";
 import { TaskBuckets, TaskItem } from "../types";
-import { Ctx, card } from "../ui";
+import { Ctx, card, notifyUndo } from "../ui";
 import { TaskEditModal } from "../modals";
 import {
   Store,
@@ -8,6 +8,7 @@ import {
   addTask,
   deleteTask,
   listSections,
+  restoreTask,
   setTaskDone,
   updateTask,
 } from "../mutations";
@@ -160,10 +161,14 @@ function openEditModal(ctx: Ctx, task: TaskItem) {
       if (await updateTask(storeOf(ctx), task, draft)) ctx.refresh();
     },
     onDelete: async () => {
-      if (await deleteTask(storeOf(ctx), task)) {
-        new Notice(ctx.settings.lang === "en" ? "Task deleted" : "已删除任务");
+      const store = storeOf(ctx);
+      const removed = await deleteTask(store, task);
+      if (!removed) return;
+      ctx.refresh();
+      notifyUndo(ctx.t.taskDeleted, ctx.t.undo, async () => {
+        await restoreTask(store, removed);
         ctx.refresh();
-      }
+      });
     },
   }).open();
 }

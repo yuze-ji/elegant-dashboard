@@ -47,15 +47,25 @@ export interface DeadlineItem {
   title: string;
   /** YYYY-MM-DD. Deadlines are day-granularity, not timed events. */
   date: string;
+  /** Fire a one-time reminder once this many days (or fewer) remain; null = off. */
+  remindDaysBefore: number | null;
+  /** Whether the reminder already fired for the current date/remindDaysBefore. */
+  reminded: boolean;
 }
 
 export interface HabitItem {
   id: string;
   name: string;
+  /** null = daily habit (streak = consecutive days). A number = "N times a
+   *  week" (streak = consecutive weeks the target was met), for habits that
+   *  were never meant to happen every single day. */
+  targetPerWeek: number | null;
 }
 
 export interface DashboardSettings {
   lang: Lang;
+  /** Opens the dashboard tab once the workspace layout has restored. */
+  openOnStartup: boolean;
   focusDefaultMinutes: number;
   /** "dial" = canvas ring, "flip" = flip-clock digits. */
   focusClockStyle: FocusClockStyle;
@@ -96,6 +106,9 @@ export interface DashboardSettings {
 
 export const DEFAULT_SETTINGS: DashboardSettings = {
   lang: "cn",
+  // Off by default: a plugin silently taking over the workspace on every
+  // launch is the kind of thing that should be an opt-in, not a surprise.
+  openOnStartup: false,
   focusDefaultMinutes: 25,
   focusClockStyle: "dial",
   clock24h: true,

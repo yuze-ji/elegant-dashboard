@@ -79,12 +79,33 @@ export async function updateTask(
   return true;
 }
 
-export async function deleteTask(store: Store, task: TaskItem): Promise<boolean> {
-  const idx = store.settings.storedTasks.findIndex((t) => t.id === task.id);
-  if (idx === -1) return missing();
-  store.settings.storedTasks.splice(idx, 1);
+/** What a delete hands back, so the caller can offer an undo. */
+export interface Removed<T> {
+  item: T;
+  index: number;
+}
+
+/**
+ * Returns the removed row and its position (not just whether it worked) so
+ * the caller can offer an undo — nothing in this plugin has version history,
+ * so a delete with no way back is one stray click from losing real data.
+ */
+export async function deleteTask(
+  store: Store,
+  task: TaskItem
+): Promise<Removed<StoredTask> | false> {
+  const index = store.settings.storedTasks.findIndex((t) => t.id === task.id);
+  if (index === -1) return missing();
+  const [item] = store.settings.storedTasks.splice(index, 1);
   await store.save();
-  return true;
+  return { item, index };
+}
+
+/** Re-inserts a task removed by `deleteTask`, in its original position. */
+export async function restoreTask(store: Store, removed: Removed<StoredTask>): Promise<void> {
+  const at = Math.min(removed.index, store.settings.storedTasks.length);
+  store.settings.storedTasks.splice(at, 0, removed.item);
+  await store.save();
 }
 
 export async function addTask(
@@ -149,12 +170,21 @@ export async function updateProject(
 export async function deleteProject(
   store: Store,
   project: ProjectItem
-): Promise<boolean> {
-  const idx = store.settings.storedProjects.findIndex((p) => p.id === project.id);
-  if (idx === -1) return missing();
-  store.settings.storedProjects.splice(idx, 1);
+): Promise<Removed<StoredProject> | false> {
+  const index = store.settings.storedProjects.findIndex((p) => p.id === project.id);
+  if (index === -1) return missing();
+  const [item] = store.settings.storedProjects.splice(index, 1);
   await store.save();
-  return true;
+  return { item, index };
+}
+
+export async function restoreProject(
+  store: Store,
+  removed: Removed<StoredProject>
+): Promise<void> {
+  const at = Math.min(removed.index, store.settings.storedProjects.length);
+  store.settings.storedProjects.splice(at, 0, removed.item);
+  await store.save();
 }
 
 export async function addProject(
@@ -184,7 +214,13 @@ export async function addDeadline(
 ): Promise<boolean> {
   const t = title.trim();
   if (!t || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
-  store.settings.deadlines.push({ id: newId(), title: t, date });
+  store.settings.deadlines.push({
+    id: newId(),
+    title: t,
+    date,
+    remindDaysBefore: null,
+    reminded: false,
+  });
   await store.save();
   return true;
 }
@@ -204,17 +240,35 @@ export async function updateDeadline(
   if (patch.date !== undefined) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(patch.date)) return false;
     target.date = patch.date;
+    // A moved due date invalidates any reminder already fired for the old one.
+    target.reminded = false;
+  }
+  if (patch.remindDaysBefore !== undefined) {
+    target.remindDaysBefore = patch.remindDaysBefore;
+    target.reminded = false;
   }
   await store.save();
   return true;
 }
 
-export async function deleteDeadline(store: Store, id: string): Promise<boolean> {
-  const idx = store.settings.deadlines.findIndex((d) => d.id === id);
-  if (idx === -1) return missing();
-  store.settings.deadlines.splice(idx, 1);
+export async function deleteDeadline(
+  store: Store,
+  id: string
+): Promise<Removed<DeadlineItem> | false> {
+  const index = store.settings.deadlines.findIndex((d) => d.id === id);
+  if (index === -1) return missing();
+  const [item] = store.settings.deadlines.splice(index, 1);
   await store.save();
-  return true;
+  return { item, index };
+}
+
+export async function restoreDeadline(
+  store: Store,
+  removed: Removed<DeadlineItem>
+): Promise<void> {
+  const at = Math.min(removed.index, store.settings.deadlines.length);
+  store.settings.deadlines.splice(at, 0, removed.item);
+  await store.save();
 }
 
 // -------------------------------------------------------------------- habits
@@ -222,32 +276,48 @@ export async function deleteDeadline(store: Store, id: string): Promise<boolean>
 export async function addHabit(store: Store, name: string): Promise<boolean> {
   const n = name.trim();
   if (!n) return false;
-  store.settings.habits.push({ id: newId(), name: n });
+  store.settings.habits.push({ id: newId(), name: n, targetPerWeek: null });
   await store.save();
   return true;
 }
 
-export async function renameHabit(
+export async function updateHabit(
   store: Store,
   id: string,
-  name: string
+  patch: Partial<Omit<HabitItem, "id">>
 ): Promise<boolean> {
   const target = store.settings.habits.find((h) => h.id === id);
   if (!target) return missing();
-  const n = name.trim();
-  if (!n) return false;
-  target.name = n;
+  if (patch.name !== undefined) {
+    const n = patch.name.trim();
+    if (!n) return false;
+    target.name = n;
+  }
+  if (patch.targetPerWeek !== undefined) target.targetPerWeek = patch.targetPerWeek;
   await store.save();
   return true;
 }
 
-export async function deleteHabit(store: Store, id: string): Promise<boolean> {
-  const idx = store.settings.habits.findIndex((h) => h.id === id);
-  if (idx === -1) return missing();
-  store.settings.habits.splice(idx, 1);
+/** The removed habit's check-in log rides along, or undo would resurrect a habit with its streak wiped. */
+export interface RemovedHabit extends Removed<HabitItem> {
+  log: Record<string, boolean> | undefined;
+}
+
+export async function deleteHabit(store: Store, id: string): Promise<RemovedHabit | false> {
+  const index = store.settings.habits.findIndex((h) => h.id === id);
+  if (index === -1) return missing();
+  const [item] = store.settings.habits.splice(index, 1);
+  const log = store.settings.habitLog[id];
   delete store.settings.habitLog[id];
   await store.save();
-  return true;
+  return { item, index, log };
+}
+
+export async function restoreHabit(store: Store, removed: RemovedHabit): Promise<void> {
+  const at = Math.min(removed.index, store.settings.habits.length);
+  store.settings.habits.splice(at, 0, removed.item);
+  if (removed.log) store.settings.habitLog[removed.item.id] = removed.log;
+  await store.save();
 }
 
 /** Toggles a single day for a habit. `dateKey` is YYYY-MM-DD. */

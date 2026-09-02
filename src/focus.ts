@@ -44,6 +44,17 @@ export class FocusEngine {
     this.remaining = this.targetSeconds;
   }
 
+  /**
+   * Repoints this engine at a *replaced* settings object — e.g. after
+   * `importSettings` swaps in a whole new one — so banked focus time keeps
+   * landing in the current focusLog instead of the one from before the
+   * import. Ordinary edits mutate the existing object in place and don't
+   * need this.
+   */
+  updateSettings(settings: DashboardSettings) {
+    this.settings = settings;
+  }
+
   onChange(fn: () => void): () => void {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);

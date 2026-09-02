@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting, moment } from "obsidian";
 import type DashboardPlugin from "./main";
 import { MODULE_ORDER, ModuleId } from "./types";
 
@@ -55,11 +55,39 @@ export class DashboardSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName(cn ? "启动时自动打开" : "Open on startup")
+      .setDesc(
+        cn
+          ? "Obsidian 启动、恢复上次的标签页布局之后，自动打开仪表板"
+          : "Opens the dashboard tab once Obsidian has restored the previous session's layout"
+      )
+      .addToggle((tg) =>
+        tg.setValue(this.plugin.settings.openOnStartup).onChange(async (v) => {
+          this.plugin.settings.openOnStartup = v;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
       .setName(cn ? "数据存储" : "Data storage")
       .setDesc(
         cn
           ? `任务与项目保存在插件的 data.json 中，不占用笔记文件。当前：${this.plugin.settings.storedTasks.length} 个任务、${this.plugin.settings.storedProjects.length} 个项目`
           : `Tasks and projects live in the plugin's data.json. Currently ${this.plugin.settings.storedTasks.length} tasks and ${this.plugin.settings.storedProjects.length} projects.`
+      );
+
+    new Setting(containerEl)
+      .setName(cn ? "备份" : "Backup")
+      .setDesc(
+        cn
+          ? "所有任务、项目、日程、习惯、闹钟都只存在这份本地数据里，没有其它历史记录——建议定期导出一份"
+          : "Tasks, projects, deadlines, habits and alarms all live only in this local data — export a copy every so often"
+      )
+      .addButton((b) =>
+        b.setButtonText(cn ? "导出" : "Export").onClick(() => this.exportBackup())
+      )
+      .addButton((b) =>
+        b.setButtonText(cn ? "导入" : "Import").onClick(() => this.importBackup())
       );
 
     new Setting(containerEl).setName(cn ? "任务目标" : "Task targets").setHeading();
@@ -323,5 +351,44 @@ export class DashboardSettingTab extends PluginSettingTab {
         })
       );
     }
+  }
+
+  /**
+   * Downloads the current settings as a JSON file via a Blob + synthetic
+   * click — the standard browser download path, so this needs no Electron
+   * or Obsidian-internal API and works the same on desktop and mobile.
+   */
+  private exportBackup() {
+    const cn = this.plugin.settings.lang === "cn";
+    const json = this.plugin.exportSettingsJson();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `elegant-dashboard-backup-${moment().format("YYYY-MM-DD")}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    new Notice(cn ? "已导出备份" : "Backup exported");
+  }
+
+  /** Opens a native file picker and replaces all plugin data with its contents. */
+  private importBackup() {
+    const cn = this.plugin.settings.lang === "cn";
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json,.json";
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const raw = JSON.parse(await file.text());
+        await this.plugin.importSettings(raw);
+        new Notice(cn ? "已导入备份" : "Backup imported");
+        this.display();
+      } catch (err) {
+        new Notice(cn ? `导入失败：${String(err)}` : `Import failed: ${String(err)}`);
+      }
+    };
+    input.click();
   }
 }

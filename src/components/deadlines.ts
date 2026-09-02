@@ -1,6 +1,6 @@
 import { setIcon } from "obsidian";
 import { DeadlineItem } from "../types";
-import { Ctx, card, empty } from "../ui";
+import { Ctx, card, empty, notifyUndo } from "../ui";
 import {
   addMonths,
   daysBetween,
@@ -10,7 +10,13 @@ import {
   startOfMonth,
   toKey,
 } from "../dates";
-import { Store, addDeadline, deleteDeadline, updateDeadline } from "../mutations";
+import {
+  Store,
+  addDeadline,
+  deleteDeadline,
+  restoreDeadline,
+  updateDeadline,
+} from "../mutations";
 
 const storeOf = (ctx: Ctx): Store => ({ settings: ctx.settings, save: ctx.save });
 
@@ -28,6 +34,39 @@ function badgeText(days: number, t: Ctx["t"]): string {
   if (days < 0) return t.deadlineOverdue(-days);
   if (days === 0) return t.deadlineToday;
   return t.deadlineDaysLeft(days);
+}
+
+/** Preset choices, not a free-number field — five options cover the real
+ *  cases and a dropdown is one click instead of a validated text input. */
+const REMIND_PRESETS = [1, 3, 7];
+
+function renderRemindSelect(parent: HTMLElement, ctx: Ctx, store: Store, item: DeadlineItem) {
+  const { t } = ctx;
+  const select = parent.createEl("select", { cls: "ed-deadline-remind" });
+  select.createEl("option", { value: "", text: t.deadlineRemindNone });
+  select.createEl("option", { value: "0", text: t.deadlineRemindSameDay });
+  for (const n of REMIND_PRESETS) {
+    select.createEl("option", { value: String(n), text: t.deadlineRemindNDays(n) });
+  }
+  select.value = item.remindDaysBefore == null ? "" : String(item.remindDaysBefore);
+  select.onchange = async () => {
+    const v = select.value === "" ? null : Number(select.value);
+    await updateDeadline(store, item.id, { remindDaysBefore: v });
+    ctx.refresh();
+  };
+  return select;
+}
+
+function deleteRow(ctx: Ctx, store: Store, item: DeadlineItem) {
+  return async () => {
+    const removed = await deleteDeadline(store, item.id);
+    if (!removed) return;
+    ctx.refresh();
+    notifyUndo(ctx.t.deadlineDeletedNotice, ctx.t.undo, async () => {
+      await restoreDeadline(store, removed);
+      ctx.refresh();
+    });
+  };
 }
 
 // -------------------------------------------------------- overview card
@@ -97,10 +136,12 @@ function renderListRow(
     ctx.refresh();
   };
 
+  renderRemindSelect(main, ctx, store, item);
+
   const del = row.createEl("button", { cls: "ed-icon-btn ed-deadline-del" });
   setIcon(del, "trash-2");
   del.setAttr("aria-label", t.deadlineDelete);
-  del.onclick = () => void deleteDeadline(store, item.id).then((ok) => ok && ctx.refresh());
+  del.onclick = () => void deleteRow(ctx, store, item)();
 }
 
 function renderListAddRow(root: HTMLElement, ctx: Ctx, store: Store) {
@@ -253,11 +294,12 @@ export function renderDeadlineCalendar(parent: HTMLElement, ctx: Ctx) {
           ctx.refresh();
         };
 
+        renderRemindSelect(row, ctx, store, item);
+
         const del = row.createEl("button", { cls: "ed-icon-btn ed-deadline-del" });
         setIcon(del, "trash-2");
         del.setAttr("aria-label", t.deadlineDelete);
-        del.onclick = () =>
-          void deleteDeadline(store, item.id).then((ok) => ok && ctx.refresh());
+        del.onclick = () => void deleteRow(ctx, store, item)();
       }
     }
 
