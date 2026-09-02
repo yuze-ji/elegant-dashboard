@@ -18,7 +18,7 @@ The dashboard has five in-plugin pages — nothing opens a markdown tab.
 
 | Page | Contents |
 | --- | --- |
-| **Overview** | Every module. Projects and tasks are read-only reports here — edit them on their own pages — but the clock's alarms, the deadline list and the habit strips are fully interactive right on Overview. |
+| **Overview** | Every module. Projects and tasks are read-only reports here — edit them on their own pages — but the clock's alarms, the deadline list and the habit strips are fully interactive right on Overview. Compact modules (clock, today, habits, focus, projects, taskboard) share responsive rows instead of each claiming a full-width one; Recent and Stats stack in a narrow column beside Charts rather than sharing a row above it; a heatmap, three columns of tasks or a deadline row with four inline-editable fields still gets the full width. Lists that can grow without bound (deadlines, habits, alarms, recent files, projects) are pinned to a fixed height and scroll internally past that, so a busy list doesn't stretch its card — or the row it shares with its neighbours — taller and taller. |
 | **Projects** | All projects including finished ones, fully editable. |
 | **Tasks** | All tasks with no per-column cap, fully editable. |
 | **Deadlines** | The same deadlines as the Overview card's list, as a month calendar instead: a coloured dot on any day something's due, click a day to see, edit or add what's on it. |
@@ -33,6 +33,10 @@ The dashboard has five in-plugin pages — nothing opens a markdown tab.
   hidden — the exact moment an alarm most needs to fire. A ring shows a notice
   and a stop banner, chimes for up to a minute, and never fires on catch-up more
   than five minutes late.
+- **Today overview** — a compact summary that sits beside the clock instead of
+  claiming a row of its own: the nearest upcoming deadline, how many tasks are
+  left today, how many habits aren't checked in yet. Built entirely from data
+  the other modules already own — nothing new to maintain.
 - **Deadlines** — for things with a date, not a recurring schedule (exams,
   submissions). Colour-coded by urgency (today / soon / this week / later /
   overdue). The Overview card is a plain sorted list; the dedicated Deadlines

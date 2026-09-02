@@ -1,12 +1,13 @@
 import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import type DashboardPlugin from "./main";
 import { Ctx } from "./ui";
-import { MODULE_ORDER, ModuleId } from "./types";
+import { COMPACT_MODULES, MODULE_ORDER, ModuleId, SIDEBAR_MODULES } from "./types";
 import { BUNDLED_BACKGROUND } from "./settings";
 import { renderActivity } from "./components/activity";
 import { renderClock } from "./components/clock";
 import { renderDeadlineCalendar, renderDeadlines } from "./components/deadlines";
 import { renderHabits } from "./components/habits";
+import { renderTodayOverview } from "./components/today";
 import { renderFocusTimer } from "./components/focusTimer";
 import { renderProjects } from "./components/projects";
 import { renderTaskboard } from "./components/taskboard";
@@ -145,25 +146,82 @@ export class DashboardView extends ItemView {
       guard("focus", () => renderFocusTimer(grid, ctx, this.plugin.focus));
       guard("focusHistory", () => renderFocusHistory(grid, ctx, this.plugin.focus));
     } else {
-      const renderers: Record<ModuleId, () => void> = {
-        clock: () => renderClock(grid, ctx, this.plugin.alarms),
-        deadlines: () => renderDeadlines(grid, ctx),
-        activity: () => renderActivity(grid, ctx, activity),
-        habits: () => renderHabits(grid, ctx),
-        focus: () => renderFocusTimer(grid, ctx, this.plugin.focus),
+      // Each renderer takes its own parent now instead of being bound to
+      // `grid` directly, so the loop below can hand it either `grid` (a
+      // full-width row) or a shared compact-group container.
+      const renderers: Record<ModuleId, (parent: HTMLElement) => void> = {
+        clock: (p) => renderClock(p, ctx, this.plugin.alarms),
+        today: (p) => renderTodayOverview(p, ctx, buckets),
+        deadlines: (p) => renderDeadlines(p, ctx),
+        activity: (p) => renderActivity(p, ctx, activity),
+        habits: (p) => renderHabits(p, ctx),
+        focus: (p) => renderFocusTimer(p, ctx, this.plugin.focus),
         // The overview is a report: editing lives on the Projects / Tasks pages.
-        projects: () => renderProjects(grid, ctx, projects, { readOnly: true }),
-        taskboard: () => renderTaskboard(grid, ctx, counts),
-        taskDetails: () => renderTaskDetails(grid, ctx, buckets, { readOnly: true }),
-        recent: () =>
-          renderRecent(grid, ctx, this.plugin.data.getRecentFiles(settings.recentLimit)),
-        stats: () => renderStats(grid, ctx, vaultStats),
-        charts: () => renderTrends(grid, ctx, vaultStats, months),
+        projects: (p) => renderProjects(p, ctx, projects, { readOnly: true }),
+        taskboard: (p) => renderTaskboard(p, ctx, counts),
+        taskDetails: (p) => renderTaskDetails(p, ctx, buckets, { readOnly: true }),
+        recent: (p) =>
+          renderRecent(p, ctx, this.plugin.data.getRecentFiles(settings.recentLimit)),
+        stats: (p) => renderStats(p, ctx, vaultStats),
+        charts: (p) => renderTrends(p, ctx, vaultStats, months),
+      };
+
+      // Consecutive enabled COMPACT_MODULES share one responsive grid row;
+      // anything else (a heatmap, three columns of tasks, a chart with its
+      // own internal columns) gets the full card width. Grouping by position
+      // in MODULE_ORDER means toggling a module reshuffles its neighbours
+      // automatically instead of needing hand-picked pairs.
+      let pendingCompact: ModuleId[] = [];
+      const flushCompact = () => {
+        if (pendingCompact.length === 0) return;
+        const row = grid.createDiv({ cls: "ed-compact-grid" });
+        for (const id of pendingCompact) guard(id, () => renderers[id](row));
+        pendingCompact = [];
+      };
+
+      // Recent and Stats are held back rather than flowing through the
+      // compact grid: they land beside Charts instead, stacked in a narrow
+      // column next to it (see SIDEBAR_MODULES) — two short cards read
+      // better next to one tall one than under it, full-width and mostly
+      // empty at the sides.
+      let pendingSidebar: ModuleId[] = [];
+      const renderSidebar = (parent: HTMLElement) => {
+        const col = parent.createDiv({ cls: "ed-sidebar-col" });
+        for (const id of pendingSidebar) guard(id, () => renderers[id](col));
+        pendingSidebar = [];
       };
 
       for (const id of MODULE_ORDER) {
         if (!settings.modules[id]) continue;
-        guard(id, renderers[id]);
+        if (COMPACT_MODULES.includes(id)) {
+          pendingCompact.push(id);
+        } else if (SIDEBAR_MODULES.includes(id)) {
+          pendingSidebar.push(id);
+        } else if (id === "charts" && pendingSidebar.length > 0) {
+          flushCompact();
+          const row = grid.createDiv({ cls: "ed-charts-row" });
+          // Sidebar is *appended* first — even though it *displays* second,
+          // via CSS `order` — so its real height is already in the DOM
+          // before Charts measures how tall it can draw itself. Charts'
+          // canvas sizing reads its wrapper's clientHeight synchronously
+          // during render, which forces a layout pass right then; if the
+          // sidebar weren't there yet, that pass would size the canvas
+          // against an empty sibling and undershoot.
+          renderSidebar(row);
+          const main = row.createDiv({ cls: "ed-charts-main" });
+          guard(id, () => renderers[id](main));
+        } else {
+          flushCompact();
+          guard(id, () => renderers[id](grid));
+        }
+      }
+      flushCompact();
+      // Charts was off, or never reached (both possible if a user disables
+      // it but keeps Recent/Stats) — fall back to the ordinary compact row
+      // rather than dropping them.
+      if (pendingSidebar.length > 0) {
+        const row = grid.createDiv({ cls: "ed-compact-grid" });
+        for (const id of pendingSidebar) guard(id, () => renderers[id](row));
       }
     }
 

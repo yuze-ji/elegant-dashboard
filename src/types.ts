@@ -2,6 +2,7 @@ export type Lang = "cn" | "en";
 
 export type ModuleId =
   | "clock"
+  | "today"
   | "deadlines"
   | "activity"
   | "habits"
@@ -15,6 +16,7 @@ export type ModuleId =
 
 export const MODULE_ORDER: ModuleId[] = [
   "clock",
+  "today",
   "deadlines",
   "activity",
   "habits",
@@ -26,6 +28,34 @@ export const MODULE_ORDER: ModuleId[] = [
   "stats",
   "charts",
 ];
+
+/**
+ * Modules narrow enough to share a row instead of each claiming a full-width
+ * one. Consecutive *enabled* compact modules (in MODULE_ORDER) are grouped
+ * into one responsive grid; anything not in this list — a heatmap, three
+ * columns of tasks, a chart with its own internal columns, a deadline row
+ * with four inline-editable fields — gets the full card width to itself.
+ * Grouping is by position in MODULE_ORDER, so toggling a module on/off
+ * reshuffles neighbouring groups automatically rather than needing new pairs
+ * hand-picked every time.
+ */
+export const COMPACT_MODULES: ModuleId[] = [
+  "clock",
+  "today",
+  "habits",
+  "focus",
+  "projects",
+  "taskboard",
+];
+
+/**
+ * Recent and Stats are pulled out of the generic compact-grid flow and
+ * stacked in a narrow column beside Charts instead: two short cards next to
+ * one taller one reads better than a wide gap under Recent (whose own
+ * height rarely matches Stats' one-row-of-numbers height) with Charts
+ * squeezed underneath, full-width, mostly empty at the sides.
+ */
+export const SIDEBAR_MODULES: ModuleId[] = ["recent", "stats"];
 
 /** How the focus timer draws its remaining time. */
 export type FocusClockStyle = "dial" | "flip";
@@ -133,6 +163,7 @@ export const DEFAULT_SETTINGS: DashboardSettings = {
   glassBlur: 24,
   modules: {
     clock: true,
+    today: true,
     deadlines: true,
     activity: true,
     habits: true,

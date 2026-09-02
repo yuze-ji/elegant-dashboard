@@ -20,9 +20,9 @@ import {
 
 const storeOf = (ctx: Ctx): Store => ({ settings: ctx.settings, save: ctx.save });
 
-type Urgency = "overdue" | "today" | "soon" | "near" | "far";
+export type Urgency = "overdue" | "today" | "soon" | "near" | "far";
 
-function urgencyOf(days: number): Urgency {
+export function urgencyOf(days: number): Urgency {
   if (days < 0) return "overdue";
   if (days === 0) return "today";
   if (days <= 3) return "soon";
@@ -30,7 +30,7 @@ function urgencyOf(days: number): Urgency {
   return "far";
 }
 
-function badgeText(days: number, t: Ctx["t"]): string {
+export function badgeText(days: number, t: Ctx["t"]): string {
   if (days < 0) return t.deadlineOverdue(-days);
   if (days === 0) return t.deadlineToday;
   return t.deadlineDaysLeft(days);

@@ -19,14 +19,19 @@ export function renderTrends(parent: HTMLElement, ctx: Ctx, stats: VaultStats, m
   // ---- monthly word trend
   const trendCol = row.createDiv({ cls: "ed-chart-col" });
   trendCol.createDiv({ cls: "ed-chart-title", text: t.wordTrend });
-  const trendCanvas = trendCol.createEl("canvas", { cls: "ed-chart-canvas" });
+  // The wrap, not the canvas, takes the flex sizing: a canvas has no
+  // intrinsic height for flexbox to size against, so paint() measures the
+  // wrap and draws the canvas to match instead.
+  const trendWrap = trendCol.createDiv({ cls: "ed-chart-canvas-wrap" });
+  const trendCanvas = trendWrap.createEl("canvas", { cls: "ed-chart-canvas" });
 
   // ---- tag distribution
   const tagCol = row.createDiv({ cls: "ed-chart-col ed-chart-col-narrow" });
   tagCol.createDiv({ cls: "ed-chart-title", text: t.tagRatio });
-  const tagCanvas = tagCol.createEl("canvas", { cls: "ed-chart-canvas" });
+  const tagWrap = tagCol.createDiv({ cls: "ed-chart-canvas-wrap" });
+  const tagCanvas = tagWrap.createEl("canvas", { cls: "ed-chart-canvas" });
   const hasTags = stats.topTags.length > 0;
-  if (!hasTags) empty(tagCol, t.noTags);
+  if (!hasTags) empty(tagWrap, t.noTags);
 
   const monthLabels = months.map((m) => t.monthNames[parseInt(m.slice(5, 7), 10) - 1]);
   const monthValues = months.map((m) => stats.monthlyWords[m] || 0);
@@ -44,17 +49,23 @@ export function renderTrends(parent: HTMLElement, ctx: Ctx, stats: VaultStats, m
 
   const paint = () => {
     const trendW = Math.max(240, trendCol.clientWidth || 320);
+    // The wrap stretches with the card (see the .ed-charts-row bottom-align
+    // rules) — measuring it, rather than hard-coding 160, is what lets a
+    // shorter chart card grow into unused height instead of just gaining
+    // blank padding around a canvas frozen at its old size.
+    const trendH = Math.max(160, trendWrap.clientHeight || 160);
     barGeo = drawBarChart(
       trendCanvas,
       trendW,
-      160,
+      trendH,
       { labels: monthLabels, values: monthValues, color: "#9AD0B4", colors },
       barHover
     );
 
     if (hasTags) {
       const tagW = Math.max(180, Math.min(tagCol.clientWidth || 200, 240));
-      donutGeo = drawDonut(tagCanvas, tagW, 160, tagEntries, colors, donutHover);
+      const tagH = Math.max(160, tagWrap.clientHeight || 160);
+      donutGeo = drawDonut(tagCanvas, tagW, tagH, tagEntries, colors, donutHover);
     }
   };
 
@@ -139,16 +150,22 @@ export function renderTrends(parent: HTMLElement, ctx: Ctx, stats: VaultStats, m
 
   // Redraw on resize so the canvases stay crisp. Painting resizes the canvases,
   // which would re-trigger the observer, so coalesce into an animation frame and
-  // skip repaints where the measured width did not actually change.
+  // skip repaints where the measured size did not actually change. Height is
+  // tracked alongside width now too: the card's height can change without its
+  // width changing, e.g. the sidebar it's bottom-aligned against gaining or
+  // losing a line of text on reflow.
   let lastWidth = -1;
+  let lastHeight = -1;
   let frame = 0;
   const ro = new ResizeObserver(() => {
     if (frame) return;
     frame = window.requestAnimationFrame(() => {
       frame = 0;
       const w = row.clientWidth;
-      if (w === lastWidth) return;
+      const h = row.clientHeight;
+      if (w === lastWidth && h === lastHeight) return;
       lastWidth = w;
+      lastHeight = h;
       paint();
     });
   });

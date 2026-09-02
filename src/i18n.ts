@@ -109,6 +109,10 @@ export interface Strings {
   habitTargetPerWeek: (n: number) => string;
   habitWeekProgress: (done: number, target: number) => string;
   habitStreakWeeks: (n: number) => string;
+  todayOverview: string;
+  todayTasksLeft: (n: number) => string;
+  todayHabitsLeft: (n: number) => string;
+  todayAllDone: string;
   undo: string;
   taskDeleted: string;
   projectDeleted: string;
@@ -239,6 +243,10 @@ export const I18N: Record<Lang, Strings> = {
     habitTargetPerWeek: (n) => `每周 ${n} 次`,
     habitWeekProgress: (done, target) => `本周 ${done}/${target}`,
     habitStreakWeeks: (n) => `🔥 连续 ${n} 周`,
+    todayOverview: "今日概览",
+    todayTasksLeft: (n) => `${n} 个任务待办`,
+    todayHabitsLeft: (n) => `${n} 个习惯未打卡`,
+    todayAllDone: "今天很轻松，都处理完了",
     undo: "撤销",
     taskDeleted: "已删除任务",
     projectDeleted: "已删除项目",
@@ -365,6 +373,10 @@ export const I18N: Record<Lang, Strings> = {
     habitTargetPerWeek: (n) => `${n}x / week`,
     habitWeekProgress: (done, target) => `${done}/${target} this week`,
     habitStreakWeeks: (n) => `🔥 ${n} week${n === 1 ? "" : "s"}`,
+    todayOverview: "Today",
+    todayTasksLeft: (n) => `${n} task${n === 1 ? "" : "s"} left today`,
+    todayHabitsLeft: (n) => `${n} habit${n === 1 ? "" : "s"} not checked in`,
+    todayAllDone: "All clear — nothing left today",
     undo: "Undo",
     taskDeleted: "Task deleted",
     projectDeleted: "Project deleted",

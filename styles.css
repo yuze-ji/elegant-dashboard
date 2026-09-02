@@ -79,6 +79,143 @@
   gap: 20px;
 }
 
+/* Groups consecutive "compact" modules (clock, today, habits, focus,
+   projects, taskboard, recent, stats — see COMPACT_MODULES) into one
+   responsive row instead of each claiming a full-width row of its own.
+   Flex, not CSS Grid: Grid's `auto-fit` computes one fixed set of column
+   tracks for the *whole* container, so a group of 4 wrapping under a
+   3-column fit left the 4th card marooned at one column's width instead of
+   stretching to fill its own row. Flexbox redistributes leftover space per
+   *line*, so a lone wrapped card still fills the row it lands on.
+   `align-items: flex-start` keeps a short card (Stats) from being stretched
+   to match a tall neighbour (Recent). */
+.ed-compact-grid {
+  display: flex;
+  flex-wrap: wrap;
+  /* Stretch, not flex-start: which modules land in the same wrapped row is
+     dynamic (depends on window width), so there's no fixed pair to hand-align
+     the way Charts/Sidebar get bottom-aligned — flexbox already re-stretches
+     each wrapped row to its own tallest item automatically, whatever ends up
+     sharing it. */
+  align-items: stretch;
+  gap: 20px;
+}
+
+.ed-compact-grid > .ed-card {
+  flex: 1 1 280px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* Content stays pinned to the top (flex-start, the default) rather than
+     centered — any leftover height from row-stretching just sits below it.
+     The other half of not leaving a card looking broken is capping growth
+     the opposite way: the lists that can genuinely get long (alarms,
+     habits, projects) already have their own max-height + overflow-y:auto,
+     so a card with a lot of content scrolls internally instead of growing
+     tall enough to blow out the whole row's alignment. */
+}
+
+/* Charts (word trend + tag donut) next to Recent/Stats stacked in a narrow
+   column, rather than Recent and Stats sharing a row above a full-width
+   Charts card — two short cards read better beside one tall one than under
+   it with empty space down either side. Wraps to stacked full-width on
+   narrow viewports, same as the other flex-wrap rows in this file. */
+.ed-charts-row {
+  display: flex;
+  /* Stretch, not flex-start: whichever side is naturally shorter grows to
+     match the taller one, so the two bottom edges line up instead of one
+     card trailing off above the other with page background showing through. */
+  align-items: stretch;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.ed-charts-main {
+  flex: 2 1 480px;
+  min-width: 0;
+  display: flex;
+  /* Built second in the DOM (see view.ts) so Charts' own canvas sizing can
+     measure the sidebar's real height, but still shown first, on the left. */
+  order: 1;
+}
+
+/* Lets the actual chart card grow to fill the stretched wrapper. */
+.ed-charts-main > .ed-card {
+  flex: 1;
+}
+
+.ed-sidebar-col {
+  flex: 1 1 280px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  order: 2;
+}
+
+/* Recent, not Stats, absorbs any leftover height when the column is
+   stretched taller than its natural content — a taller list card reads
+   fine; a taller three-number Stats card would just look odd. */
+.ed-sidebar-col > .ed-card:first-child {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ed-sidebar-col > .ed-card:first-child .ed-recent-list {
+  flex: 1;
+  min-height: 0;
+  /* The flex-column card above already bounds this — capping it a second
+     time here would just reintroduce the blank space this is meant to close. */
+  max-height: none;
+}
+
+/* ---- Today Overview: compact, since it lives half-width next to the clock */
+
+.ed-today-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ed-today-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--ed-radius-sm);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.ed-today-icon {
+  flex: 0 0 auto;
+  font-size: 0.95em;
+}
+
+.ed-today-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-today-badge {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.7em;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--ed-urgency, var(--text-muted));
+}
+
 .ed-loading {
   text-align: center;
   color: var(--text-muted);
@@ -928,6 +1065,11 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  /* A little breathing room so the scrollbar doesn't sit flush against the
+     card's rounded edge on the hover-scale project cards. */
+  padding-right: 2px;
 }
 
 .ed-project-card {
@@ -1314,6 +1456,10 @@
 .ed-recent-list {
   display: flex;
   flex-direction: column;
+  /* Bounded by the "Recent files count" setting in the common case, but a
+     user who raises that setting shouldn't get an ever-taller card either. */
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .ed-recent-row {
@@ -1377,12 +1523,18 @@
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  align-items: flex-start;
+  /* Stretch, not flex-start: when this card itself is stretched taller by
+     the outer .ed-charts-row bottom-align rules, both sub-columns — and in
+     turn their canvases, see .ed-chart-canvas-wrap — grow to fill it rather
+     than floating at their old fixed height with blank space below. */
+  align-items: stretch;
 }
 
 .ed-chart-col {
   flex: 1;
   min-width: 240px;
+  display: flex;
+  flex-direction: column;
 }
 
 .ed-chart-col-narrow {
@@ -1395,6 +1547,21 @@
   font-weight: 600;
   color: var(--interactive-accent);
   margin-bottom: 6px;
+}
+
+.ed-chart-canvas-wrap {
+  flex: 1;
+  min-height: 160px;
+  /* Positioning context for the canvas below, which must be taken out of
+     normal flow entirely — otherwise its own (JS-set) pixel height feeds
+     back into this wrap's content size, which paint() then measures to
+     decide the *next* canvas height, growing without bound on every redraw. */
+  position: relative;
+}
+
+.ed-chart-canvas-wrap canvas {
+  position: absolute;
+  inset: 0;
 }
 
 /* Signals that the canvases respond to hover. */
@@ -1666,6 +1833,8 @@
   flex-direction: column;
   gap: 8px;
   margin-top: 12px;
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .ed-alarm-row {
@@ -1859,6 +2028,11 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* Pinned height, not "grows with however many deadlines exist" — past
+     this, the list scrolls internally instead of pushing the rest of the
+     page down and disrupting the row it shares with its neighbours. */
+  max-height: 260px;
+  overflow-y: auto;
 }
 
 .ed-deadline-list .ed-deadline-row {
@@ -2057,6 +2231,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-height: 280px;
+  overflow-y: auto;
 }
 
 .ed-habit-row {
@@ -2069,6 +2245,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  /* Now potentially a narrow column inside .ed-compact-grid rather than
+     always the full card width — a long name plus a progress badge, streak
+     and target select wraps instead of overflowing. */
+  flex-wrap: wrap;
+  row-gap: 4px;
 }
 
 .ed-habit-name {
@@ -2172,9 +2353,15 @@
 
 .elegant-dashboard.is-glass .ed-deadline-title,
 .elegant-dashboard.is-glass .ed-deadline-panel-date,
-.elegant-dashboard.is-glass .ed-habit-name {
+.elegant-dashboard.is-glass .ed-habit-name,
+.elegant-dashboard.is-glass .ed-today-text {
   color: var(--ed-ink);
   text-shadow: var(--ed-halo);
+}
+
+.elegant-dashboard.is-glass .ed-today-row {
+  background: var(--ed-glass-inner);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .elegant-dashboard.is-glass .ed-habit-target {
