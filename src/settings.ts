@@ -11,7 +11,9 @@ export const BUNDLED_BACKGROUND = "@bundled";
 
 const MODULE_LABELS: Record<ModuleId, { cn: string; en: string }> = {
   clock: { cn: "翻页时钟与闹钟", en: "Flip clock & alarms" },
+  deadlines: { cn: "日程倒计时", en: "Deadlines" },
   activity: { cn: "笔记活动热力图", en: "Note activity heatmap" },
+  habits: { cn: "习惯追踪", en: "Habit tracker" },
   focus: { cn: "专注计时器", en: "Focus timer" },
   projects: { cn: "项目概览", en: "Projects board" },
   taskboard: { cn: "任务统计", en: "Taskboard" },

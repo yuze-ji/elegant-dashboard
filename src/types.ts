@@ -2,7 +2,9 @@ export type Lang = "cn" | "en";
 
 export type ModuleId =
   | "clock"
+  | "deadlines"
   | "activity"
+  | "habits"
   | "focus"
   | "projects"
   | "taskboard"
@@ -13,7 +15,9 @@ export type ModuleId =
 
 export const MODULE_ORDER: ModuleId[] = [
   "clock",
+  "deadlines",
   "activity",
+  "habits",
   "focus",
   "projects",
   "taskboard",
@@ -38,6 +42,18 @@ export interface AlarmItem {
   lastFired: string | null;
 }
 
+export interface DeadlineItem {
+  id: string;
+  title: string;
+  /** YYYY-MM-DD. Deadlines are day-granularity, not timed events. */
+  date: string;
+}
+
+export interface HabitItem {
+  id: string;
+  name: string;
+}
+
 export interface DashboardSettings {
   lang: Lang;
   focusDefaultMinutes: number;
@@ -52,6 +68,10 @@ export interface DashboardSettings {
   /** Play a tone when an alarm fires (in addition to the notice). */
   alarmSound: boolean;
   alarms: AlarmItem[];
+  deadlines: DeadlineItem[];
+  habits: HabitItem[];
+  /** habit id -> (date YYYY-MM-DD -> done) */
+  habitLog: Record<string, Record<string, boolean>>;
   taskTargetToday: number;
   taskTargetWeek: number;
   taskTargetMonth: number;
@@ -83,6 +103,9 @@ export const DEFAULT_SETTINGS: DashboardSettings = {
   clockShowDate: true,
   alarmSound: true,
   alarms: [],
+  deadlines: [],
+  habits: [],
+  habitLog: {},
   taskTargetToday: 5,
   taskTargetWeek: 25,
   taskTargetMonth: 100,
@@ -97,7 +120,9 @@ export const DEFAULT_SETTINGS: DashboardSettings = {
   glassBlur: 24,
   modules: {
     clock: true,
+    deadlines: true,
     activity: true,
+    habits: true,
     focus: true,
     projects: true,
     taskboard: true,

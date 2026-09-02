@@ -124,6 +124,9 @@ export default class DashboardPlugin extends Plugin {
       focusLog: { ...(raw?.focusLog || {}) },
       // Cloned, so an install with no saved alarms does not mutate the defaults.
       alarms: (raw?.alarms || []).map((a) => ({ ...a, days: [...(a.days || [])] })),
+      deadlines: raw?.deadlines || [],
+      habits: raw?.habits || [],
+      habitLog: { ...(raw?.habitLog || {}) },
     };
   }
 

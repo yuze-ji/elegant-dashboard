@@ -88,6 +88,19 @@ export interface Strings {
   alarmInvalidTime: string;
   alarmNextIn: (h: number, m: number) => string;
   alarmRinging: (time: string, label: string) => string;
+  deadlines: string;
+  noDeadlines: string;
+  addDeadline: string;
+  deadlineAddPlaceholder: string;
+  deadlineDelete: string;
+  deadlineToday: string;
+  deadlineDaysLeft: (n: number) => string;
+  deadlineOverdue: (n: number) => string;
+  habits: string;
+  noHabits: string;
+  addHabit: string;
+  habitAddPlaceholder: string;
+  habitDelete: string;
   weekdayShort: string[];
   weekdayFull: string[];
   monthNames: string[];
@@ -188,6 +201,19 @@ export const I18N: Record<Lang, Strings> = {
     alarmNextIn: (h, m) =>
       h > 0 ? `${h} 小时 ${m} 分钟后响铃` : `${m} 分钟后响铃`,
     alarmRinging: (time, label) => `⏰ ${time} — ${label}`,
+    deadlines: "日程倒计时",
+    noDeadlines: "还没有日程，添加一个截止日期吧",
+    addDeadline: "+ 添加",
+    deadlineAddPlaceholder: "事项名称…",
+    deadlineDelete: "删除日程",
+    deadlineToday: "今天",
+    deadlineDaysLeft: (n) => `还有 ${n} 天`,
+    deadlineOverdue: (n) => `已过期 ${n} 天`,
+    habits: "习惯追踪",
+    noHabits: "还没有习惯，添加一个开始打卡吧",
+    addHabit: "+ 添加",
+    habitAddPlaceholder: "习惯名称…",
+    habitDelete: "删除习惯",
     weekdayShort: ["一", "二", "三", "四", "五", "六", "日"],
     weekdayFull: ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"],
     monthNames: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"],
@@ -284,6 +310,19 @@ export const I18N: Record<Lang, Strings> = {
     alarmInvalidTime: "Enter a valid time (HH:MM)",
     alarmNextIn: (h, m) => (h > 0 ? `rings in ${h}h ${m}m` : `rings in ${m}m`),
     alarmRinging: (time, label) => `⏰ ${time} — ${label}`,
+    deadlines: "Deadlines",
+    noDeadlines: "No deadlines yet — add one to start the countdown",
+    addDeadline: "+ Add",
+    deadlineAddPlaceholder: "What's due…",
+    deadlineDelete: "Delete deadline",
+    deadlineToday: "Today",
+    deadlineDaysLeft: (n) => `${n} day${n === 1 ? "" : "s"} left`,
+    deadlineOverdue: (n) => `${n} day${n === 1 ? "" : "s"} overdue`,
+    habits: "Habits",
+    noHabits: "No habits yet — add one to start tracking",
+    addHabit: "+ Add",
+    habitAddPlaceholder: "Habit name…",
+    habitDelete: "Delete habit",
     weekdayShort: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     weekdayFull: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
     monthNames: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],

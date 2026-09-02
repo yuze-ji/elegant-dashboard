@@ -5,6 +5,8 @@ import { MODULE_ORDER, ModuleId } from "./types";
 import { BUNDLED_BACKGROUND } from "./settings";
 import { renderActivity } from "./components/activity";
 import { renderClock } from "./components/clock";
+import { renderDeadlineCalendar, renderDeadlines } from "./components/deadlines";
+import { renderHabits } from "./components/habits";
 import { renderFocusTimer } from "./components/focusTimer";
 import { renderProjects } from "./components/projects";
 import { renderTaskboard } from "./components/taskboard";
@@ -16,7 +18,7 @@ import { renderFocusHistory } from "./components/focusHistory";
 
 export const VIEW_TYPE_DASHBOARD = "elegant-dashboard-view";
 
-type Page = "dashboard" | "projects" | "tasks" | "focus";
+type Page = "dashboard" | "projects" | "tasks" | "deadlines" | "focus";
 
 export class DashboardView extends ItemView {
   private cleanups: Array<() => void> = [];
@@ -137,13 +139,17 @@ export class DashboardView extends ItemView {
     } else if (this.page === "tasks") {
       guard("taskboard", () => renderTaskboard(grid, ctx, counts));
       guard("taskDetails", () => renderTaskDetails(grid, ctx, buckets, { full: true }));
+    } else if (this.page === "deadlines") {
+      guard("deadlines", () => renderDeadlineCalendar(grid, ctx));
     } else if (this.page === "focus") {
       guard("focus", () => renderFocusTimer(grid, ctx, this.plugin.focus));
       guard("focusHistory", () => renderFocusHistory(grid, ctx, this.plugin.focus));
     } else {
       const renderers: Record<ModuleId, () => void> = {
         clock: () => renderClock(grid, ctx, this.plugin.alarms),
+        deadlines: () => renderDeadlines(grid, ctx),
         activity: () => renderActivity(grid, ctx, activity),
+        habits: () => renderHabits(grid, ctx),
         focus: () => renderFocusTimer(grid, ctx, this.plugin.focus),
         // The overview is a report: editing lives on the Projects / Tasks pages.
         projects: () => renderProjects(grid, ctx, projects, { readOnly: true }),
@@ -218,6 +224,7 @@ export class DashboardView extends ItemView {
     mkPage("dashboard", `🏠 ${t.overview}`);
     mkPage("projects", `📋 ${t.projects}`);
     mkPage("tasks", `✅ ${t.tasks}`);
+    mkPage("deadlines", `⏳ ${t.deadlines}`);
     mkPage("focus", `⏱️ ${t.focus}`);
 
     const right = nav.createDiv({ cls: "ed-nav-right" });

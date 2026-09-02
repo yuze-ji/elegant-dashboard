@@ -1,6 +1,8 @@
 import { Notice } from "obsidian";
 import {
   DashboardSettings,
+  DeadlineItem,
+  HabitItem,
   ProjectItem,
   StoredProject,
   StoredTask,
@@ -169,6 +171,95 @@ export async function addProject(
     priority: project.priority,
     progress: Math.max(0, Math.min(100, Math.round(project.progress))),
   });
+  await store.save();
+  return true;
+}
+
+// ----------------------------------------------------------------- deadlines
+
+export async function addDeadline(
+  store: Store,
+  title: string,
+  date: string
+): Promise<boolean> {
+  const t = title.trim();
+  if (!t || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  store.settings.deadlines.push({ id: newId(), title: t, date });
+  await store.save();
+  return true;
+}
+
+export async function updateDeadline(
+  store: Store,
+  id: string,
+  patch: Partial<Omit<DeadlineItem, "id">>
+): Promise<boolean> {
+  const target = store.settings.deadlines.find((d) => d.id === id);
+  if (!target) return missing();
+  if (patch.title !== undefined) {
+    const t = patch.title.trim();
+    if (!t) return false;
+    target.title = t;
+  }
+  if (patch.date !== undefined) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(patch.date)) return false;
+    target.date = patch.date;
+  }
+  await store.save();
+  return true;
+}
+
+export async function deleteDeadline(store: Store, id: string): Promise<boolean> {
+  const idx = store.settings.deadlines.findIndex((d) => d.id === id);
+  if (idx === -1) return missing();
+  store.settings.deadlines.splice(idx, 1);
+  await store.save();
+  return true;
+}
+
+// -------------------------------------------------------------------- habits
+
+export async function addHabit(store: Store, name: string): Promise<boolean> {
+  const n = name.trim();
+  if (!n) return false;
+  store.settings.habits.push({ id: newId(), name: n });
+  await store.save();
+  return true;
+}
+
+export async function renameHabit(
+  store: Store,
+  id: string,
+  name: string
+): Promise<boolean> {
+  const target = store.settings.habits.find((h) => h.id === id);
+  if (!target) return missing();
+  const n = name.trim();
+  if (!n) return false;
+  target.name = n;
+  await store.save();
+  return true;
+}
+
+export async function deleteHabit(store: Store, id: string): Promise<boolean> {
+  const idx = store.settings.habits.findIndex((h) => h.id === id);
+  if (idx === -1) return missing();
+  store.settings.habits.splice(idx, 1);
+  delete store.settings.habitLog[id];
+  await store.save();
+  return true;
+}
+
+/** Toggles a single day for a habit. `dateKey` is YYYY-MM-DD. */
+export async function toggleHabitDay(
+  store: Store,
+  habitId: string,
+  dateKey: string
+): Promise<boolean> {
+  if (!store.settings.habits.some((h) => h.id === habitId)) return missing();
+  const log = (store.settings.habitLog[habitId] ??= {});
+  if (log[dateKey]) delete log[dateKey];
+  else log[dateKey] = true;
   await store.save();
   return true;
 }

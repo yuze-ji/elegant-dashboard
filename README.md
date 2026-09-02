@@ -14,13 +14,14 @@ works offline.
 
 ### Pages
 
-The dashboard has four in-plugin pages — nothing opens a markdown tab.
+The dashboard has five in-plugin pages — nothing opens a markdown tab.
 
 | Page | Contents |
 | --- | --- |
-| **Overview** | Every module, read-only. A report, not an editor. |
+| **Overview** | Every module. Projects and tasks are read-only reports here — edit them on their own pages — but the clock's alarms, the deadline list and the habit strips are fully interactive right on Overview. |
 | **Projects** | All projects including finished ones, fully editable. |
 | **Tasks** | All tasks with no per-column cap, fully editable. |
+| **Deadlines** | The same deadlines as the Overview card's list, as a month calendar instead: a coloured dot on any day something's due, click a day to see, edit or add what's on it. |
 | **Focus** | Timer plus the focus-time trend line. |
 
 ### Modules
@@ -32,8 +33,15 @@ The dashboard has four in-plugin pages — nothing opens a markdown tab.
   hidden — the exact moment an alarm most needs to fire. A ring shows a notice
   and a stop banner, chimes for up to a minute, and never fires on catch-up more
   than five minutes late.
+- **Deadlines** — for things with a date, not a recurring schedule (exams,
+  submissions). Colour-coded by urgency (today / soon / this week / later /
+  overdue). The Overview card is a plain sorted list; the dedicated Deadlines
+  page shows the same data as a month calendar instead.
 - **Note activity heatmap** — week / month / year views. Hovering a day shows
   file activity, focus minutes and the notes created that day.
+- **Habit tracker** — a per-habit strip of the last 14 days, click any day to
+  toggle it (not just today, so a missed check-in can be backfilled), with a
+  streak count that mirrors the focus-history streak logic.
 - **Focus timer** — countdown and count-up modes, drawn either as the canvas
   dial or as flip-clock digits with a progress bar. Runs in the plugin, so it
   keeps going when the tab is closed, and banks every whole minute so a crash

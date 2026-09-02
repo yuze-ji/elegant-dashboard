@@ -1832,6 +1832,316 @@
   .ed-alarm-time { width: 96px; font-size: 1.1em; }
 }
 
+/* ------------------------------------------------------------ deadlines */
+
+/* --ed-urgency is set per data-urgency value below, and read by whichever
+   element (cell dot, badge) needs the colour, so the five-tier palette is
+   defined in exactly one place. */
+[data-urgency="far"] { --ed-urgency: #8FB8D9; }
+[data-urgency="near"] { --ed-urgency: #F3D98C; }
+[data-urgency="soon"] { --ed-urgency: #F0A868; }
+[data-urgency="today"] { --ed-urgency: #E88E8E; }
+[data-urgency="overdue"] { --ed-urgency: #E88E8E; }
+
+/* ---- Overview card: a plain row list, soonest first ---- */
+
+.ed-deadline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ed-deadline-list .ed-deadline-row {
+  border-left: 3px solid var(--ed-urgency, var(--background-modifier-border));
+}
+
+.ed-deadline-list .ed-deadline-row[data-urgency="overdue"] { opacity: 0.6; }
+
+.ed-deadline-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ed-deadline-date {
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 4px;
+  font-size: 0.78em;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+}
+
+.ed-deadline-date:hover,
+.ed-deadline-date:focus {
+  border-color: var(--background-modifier-border);
+}
+
+/* This is a full page, not a card squeezed next to others (unlike the
+   activity month view it was originally cloned from), so it gets its own,
+   much larger grid instead of sharing `.ed-cal-grid`'s 300px cap. */
+.ed-deadline-cal-weekdays,
+.ed-deadline-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 7px;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.ed-deadline-cal-wk-label {
+  font-size: 0.78em;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+/* Sits above the grid and shares its width, so the month arrows land right
+   next to the title instead of pinned to the far edges of a much wider card. */
+.ed-deadline-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  max-width: 620px;
+  margin: 0 auto 16px;
+}
+
+.ed-deadline-cal-head .ed-month-title { flex: 1; text-align: center; font-size: 1.1em; }
+
+.ed-deadline-cell {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--ed-heat-0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15em;
+  font-weight: 600;
+  color: var(--text-normal);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.ed-deadline-cell:hover { transform: scale(1.05); }
+.ed-deadline-cell.is-empty { background: transparent; cursor: default; }
+
+/* The prominent bit: a day with something due gets its whole cell tinted by
+   urgency, not a corner dot lost against the background painting. */
+.ed-deadline-cell[data-urgency] {
+  background: var(--ed-urgency);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+}
+
+/* Yellow ("near") is too light for white text to stay legible on. */
+.ed-deadline-cell[data-urgency="near"] { color: #5a4a2a; }
+
+/* An overdue day is old news, not a live emergency — dim it so the eye
+   still lands on today and what's coming, not what already passed. */
+.ed-deadline-cell[data-urgency="overdue"] { opacity: 0.55; box-shadow: none; }
+
+.ed-deadline-cell.is-today {
+  box-shadow: 0 0 0 3px var(--interactive-accent), 0 3px 8px rgba(0, 0, 0, 0.18);
+}
+.ed-deadline-cell.is-selected { outline: 3px solid var(--interactive-accent); outline-offset: 2px; }
+
+.ed-deadline-cell-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #fff;
+  font-size: 0.62em;
+  font-weight: 800;
+  line-height: 15px;
+  text-align: center;
+}
+
+.ed-deadline-panel {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.ed-deadline-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ed-deadline-panel-date {
+  font-size: 0.92em;
+  font-weight: 700;
+  color: var(--text-normal);
+}
+
+.ed-deadline-badge {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72em;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--ed-urgency, var(--text-muted));
+}
+
+.ed-deadline-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.ed-deadline-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--ed-radius-sm);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.ed-deadline-title {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-size: 0.85em;
+  color: var(--text-normal);
+}
+
+.ed-deadline-title:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.ed-deadline-del {
+  flex: 0 0 auto;
+  opacity: 0.55;
+}
+
+.ed-deadline-del:hover {
+  opacity: 1;
+  color: #e88e8e;
+}
+
+/* ---------------------------------------------------------------- habits */
+
+.ed-habit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ed-habit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ed-habit-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ed-habit-name {
+  flex: 1;
+  font-size: 0.88em;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.ed-habit-streak {
+  flex: 0 0 auto;
+  font-size: 0.76em;
+  color: #F0A868;
+  font-weight: 700;
+}
+
+.ed-habit-del {
+  flex: 0 0 auto;
+  opacity: 0.55;
+}
+
+.ed-habit-del:hover {
+  opacity: 1;
+  color: #e88e8e;
+}
+
+.ed-habit-strip {
+  display: flex;
+  gap: 4px;
+}
+
+.ed-habit-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--ed-heat-0);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.ed-habit-dot:hover {
+  transform: scale(1.2);
+}
+
+.ed-habit-dot.is-done {
+  background: #9AD0B4;
+}
+
+.ed-habit-dot.is-today {
+  border-color: var(--interactive-accent);
+}
+
+/* ---- glass treatment ---- */
+
+.elegant-dashboard.is-glass .ed-deadline-row {
+  background: var(--ed-glass-inner);
+  /* Individual sides, not the `border-color` shorthand: the left edge stays
+     urgency-coloured (set by .ed-deadline-list .ed-deadline-row above) even
+     under the glass treatment. */
+  border-top-color: rgba(255, 255, 255, 0.3);
+  border-right-color: rgba(255, 255, 255, 0.3);
+  border-bottom-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Empty days only — a day with a deadline keeps its urgency-tinted
+   background (:not() beats losing that colour to the glass wash). */
+.elegant-dashboard.is-glass .ed-deadline-cell:not([data-urgency]) {
+  background: var(--ed-glass-inner);
+}
+
+.elegant-dashboard.is-glass .ed-deadline-title,
+.elegant-dashboard.is-glass .ed-deadline-panel-date,
+.elegant-dashboard.is-glass .ed-habit-name {
+  color: var(--ed-ink);
+  text-shadow: var(--ed-halo);
+}
+
+.elegant-dashboard.is-glass .ed-deadline-date {
+  color: var(--ed-ink-soft);
+  text-shadow: var(--ed-halo);
+}
+
 /* ------------------------------------------------- bundled background */
 /* Baked in as a data URI (not a loose background.jpg) so the official
    Community Plugins installer — which only ever fetches main.js,

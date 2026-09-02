@@ -68,6 +68,16 @@ export function formatTime(d: Date): string {
   return `${m}-${day} ${hh}:${mm}`;
 }
 
+/**
+ * Whole calendar days from `a` to `b` (positive when `b` is later), ignoring
+ * time of day. Diffing through `startOfDay` first and rounding afterwards
+ * keeps a DST-shortened or -lengthened day from throwing the count off by one.
+ */
+export function daysBetween(a: Date, b: Date): number {
+  const MS_PER_DAY = 86_400_000;
+  return Math.round((startOfDay(b).getTime() - startOfDay(a).getTime()) / MS_PER_DAY);
+}
+
 export function mmss(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
   const m = Math.floor(s / 60);
