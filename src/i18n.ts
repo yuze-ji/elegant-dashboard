@@ -109,6 +109,10 @@ export interface Strings {
   habitTargetPerWeek: (n: number) => string;
   habitWeekProgress: (done: number, target: number) => string;
   habitStreakWeeks: (n: number) => string;
+  habitCheckinCount: (n: number) => string;
+  habitNoCheckins: string;
+  habitUnchecked: string;
+  habitUncheckedNotice: string;
   todayOverview: string;
   todayTasksLeft: (n: number) => string;
   todayHabitsLeft: (n: number) => string;
@@ -243,6 +247,10 @@ export const I18N: Record<Lang, Strings> = {
     habitTargetPerWeek: (n) => `每周 ${n} 次`,
     habitWeekProgress: (done, target) => `本周 ${done}/${target}`,
     habitStreakWeeks: (n) => `🔥 连续 ${n} 周`,
+    habitCheckinCount: (n) => `共 ${n} 次打卡`,
+    habitNoCheckins: "还没有打卡记录",
+    habitUnchecked: "点击取消这次打卡",
+    habitUncheckedNotice: "已取消打卡",
     todayOverview: "今日概览",
     todayTasksLeft: (n) => `${n} 个任务待办`,
     todayHabitsLeft: (n) => `${n} 个习惯未打卡`,
@@ -373,6 +381,10 @@ export const I18N: Record<Lang, Strings> = {
     habitTargetPerWeek: (n) => `${n}x / week`,
     habitWeekProgress: (done, target) => `${done}/${target} this week`,
     habitStreakWeeks: (n) => `🔥 ${n} week${n === 1 ? "" : "s"}`,
+    habitCheckinCount: (n) => `${n} check-in${n === 1 ? "" : "s"}`,
+    habitNoCheckins: "No check-ins yet",
+    habitUnchecked: "Click to remove this check-in",
+    habitUncheckedNotice: "Check-in removed",
     todayOverview: "Today",
     todayTasksLeft: (n) => `${n} task${n === 1 ? "" : "s"} left today`,
     todayHabitsLeft: (n) => `${n} habit${n === 1 ? "" : "s"} not checked in`,

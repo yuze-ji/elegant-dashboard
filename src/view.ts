@@ -6,7 +6,7 @@ import { BUNDLED_BACKGROUND } from "./settings";
 import { renderActivity } from "./components/activity";
 import { renderClock } from "./components/clock";
 import { renderDeadlineCalendar, renderDeadlines } from "./components/deadlines";
-import { renderHabits } from "./components/habits";
+import { renderHabits, renderHabitsPage } from "./components/habits";
 import { renderTodayOverview } from "./components/today";
 import { renderFocusTimer } from "./components/focusTimer";
 import { renderProjects } from "./components/projects";
@@ -19,7 +19,7 @@ import { renderFocusHistory } from "./components/focusHistory";
 
 export const VIEW_TYPE_DASHBOARD = "elegant-dashboard-view";
 
-type Page = "dashboard" | "projects" | "tasks" | "deadlines" | "focus";
+type Page = "dashboard" | "projects" | "tasks" | "deadlines" | "habits" | "focus";
 
 export class DashboardView extends ItemView {
   private cleanups: Array<() => void> = [];
@@ -142,6 +142,8 @@ export class DashboardView extends ItemView {
       guard("taskDetails", () => renderTaskDetails(grid, ctx, buckets, { full: true }));
     } else if (this.page === "deadlines") {
       guard("deadlines", () => renderDeadlineCalendar(grid, ctx));
+    } else if (this.page === "habits") {
+      guard("habits", () => renderHabitsPage(grid, ctx));
     } else if (this.page === "focus") {
       guard("focus", () => renderFocusTimer(grid, ctx, this.plugin.focus));
       guard("focusHistory", () => renderFocusHistory(grid, ctx, this.plugin.focus));
@@ -283,6 +285,7 @@ export class DashboardView extends ItemView {
     mkPage("projects", `📋 ${t.projects}`);
     mkPage("tasks", `✅ ${t.tasks}`);
     mkPage("deadlines", `⏳ ${t.deadlines}`);
+    mkPage("habits", `🔥 ${t.habits}`);
     mkPage("focus", `⏱️ ${t.focus}`);
 
     const right = nav.createDiv({ cls: "ed-nav-right" });

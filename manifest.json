@@ -1,7 +1,7 @@
 {
   "id": "elegant-dashboard",
   "name": "Elegant Dashboard",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "minAppVersion": "1.6.0",
   "description": "优雅仪表板：翻页时钟与闹钟、日程倒计时、笔记活动热力图、习惯追踪、专注计时器、项目看板、任务统计与详情、最近编辑、字数趋势与标签占比。无需 Dataview。",
   "author": "jiyuze",

@@ -1,7 +1,7 @@
 import { setIcon } from "obsidian";
 import { HabitItem } from "../types";
-import { Ctx, card, notifyUndo } from "../ui";
-import { addDays, startOfDay, startOfIsoWeek, toKey } from "../dates";
+import { Ctx, card, empty, notifyUndo } from "../ui";
+import { addDays, isoWeekday, startOfDay, startOfIsoWeek, toKey } from "../dates";
 import {
   Store,
   addHabit,
@@ -14,7 +14,8 @@ import {
 const storeOf = (ctx: Ctx): Store => ({ settings: ctx.settings, save: ctx.save });
 
 /** Width of the recent-days strip. Full-year, like the activity heatmap,
- *  would not scale to more than one or two habits on screen at once. */
+ *  would not scale to more than one or two habits on screen at once — this
+ *  compact card is for a glance, not history; see renderHabitsPage for that. */
 const STRIP_DAYS = 14;
 
 /** Preset weekly targets offered in the select — covers the realistic range
@@ -31,6 +32,32 @@ export function renderHabits(parent: HTMLElement, ctx: Ctx) {
     list.createDiv({ cls: "ed-empty", text: t.noHabits });
   } else {
     for (const h of ctx.settings.habits) renderHabitRow(list, ctx, store, h);
+  }
+
+  renderAddRow(root, ctx, store);
+}
+
+/**
+ * The dedicated Habits page: same per-habit header as the Overview card, but
+ * with a full scrollable year timeline instead of a 14-day strip — the same
+ * "compact card on Overview, full history of its own page" split Deadlines
+ * and Tasks use.
+ */
+export function renderHabitsPage(parent: HTMLElement, ctx: Ctx) {
+  const { t } = ctx;
+  const root = card(parent, `🔥 ${t.habits}`);
+  const store = storeOf(ctx);
+
+  if (ctx.settings.habits.length === 0) {
+    root.createDiv({ cls: "ed-empty", text: t.noHabits });
+  } else {
+    ctx.settings.habits.forEach((h, i) => {
+      if (i > 0) root.createDiv({ cls: "ed-divider" });
+      const block = root.createDiv({ cls: "ed-habit-block" });
+      const head = block.createDiv({ cls: "ed-habit-head" });
+      renderHabitHeader(head, ctx, store, h);
+      renderHabitTimeline(block, ctx, store, h);
+    });
   }
 
   renderAddRow(root, ctx, store);
@@ -81,15 +108,35 @@ function weeklyStreak(
 }
 
 function renderHabitRow(list: HTMLElement, ctx: Ctx, store: Store, habit: HabitItem) {
-  const { t } = ctx;
   const today = startOfDay(new Date());
   const todayKey = toKey(today);
   const log = ctx.settings.habitLog[habit.id];
-  const target = habit.targetPerWeek;
 
   const row = list.createDiv({ cls: "ed-habit-row" });
-
   const head = row.createDiv({ cls: "ed-habit-head" });
+  renderHabitHeader(head, ctx, store, habit);
+
+  const strip = row.createDiv({ cls: "ed-habit-strip" });
+  for (let i = STRIP_DAYS - 1; i >= 0; i--) {
+    const key = toKey(addDays(today, -i));
+    const done = !!log?.[key];
+    const dot = strip.createDiv({ cls: "ed-habit-dot" });
+    if (done) dot.addClass("is-done");
+    if (key === todayKey) dot.addClass("is-today");
+    dot.setAttr("aria-label", `${key}${done ? " ✓" : ""}`);
+    dot.onclick = () =>
+      void toggleHabitDay(store, habit.id, key).then((ok) => ok && ctx.refresh());
+  }
+}
+
+/** Name, streak/progress, target picker and delete — shared by the compact
+ *  card row and the full page's per-habit block. */
+function renderHabitHeader(head: HTMLElement, ctx: Ctx, store: Store, habit: HabitItem) {
+  const { t } = ctx;
+  const today = startOfDay(new Date());
+  const log = ctx.settings.habitLog[habit.id];
+  const target = habit.targetPerWeek;
+
   head.createSpan({ cls: "ed-habit-name", text: habit.name });
 
   if (target == null) {
@@ -120,17 +167,54 @@ function renderHabitRow(list: HTMLElement, ctx: Ctx, store: Store, habit: HabitI
       ctx.refresh();
     });
   };
+}
 
-  const strip = row.createDiv({ cls: "ed-habit-strip" });
-  for (let i = STRIP_DAYS - 1; i >= 0; i--) {
-    const key = toKey(addDays(today, -i));
-    const done = !!log?.[key];
-    const dot = strip.createDiv({ cls: "ed-habit-dot" });
-    if (done) dot.addClass("is-done");
-    if (key === todayKey) dot.addClass("is-today");
-    dot.setAttr("aria-label", `${key}${done ? " ✓" : ""}`);
-    dot.onclick = () =>
-      void toggleHabitDay(store, habit.id, key).then((ok) => ok && ctx.refresh());
+/**
+ * A log of check-ins, newest first — only days actually marked done, not a
+ * grid of every day including the blanks. A dot-and-line timeline rather
+ * than a plain list, but the content is deliberately sparse: this reads as
+ * "here's what I did", not "here's a calendar".
+ */
+function renderHabitTimeline(parent: HTMLElement, ctx: Ctx, store: Store, habit: HabitItem) {
+  const { t } = ctx;
+  const log = ctx.settings.habitLog[habit.id] ?? {};
+  // Date-string keys sort lexicographically the same as chronologically
+  // (YYYY-MM-DD), so a plain string sort doubles as a date sort.
+  const dates = Object.keys(log)
+    .filter((d) => log[d])
+    .sort()
+    .reverse();
+
+  parent.createDiv({ cls: "ed-habit-timeline-count", text: t.habitCheckinCount(dates.length) });
+
+  if (dates.length === 0) {
+    empty(parent, t.habitNoCheckins);
+    return;
+  }
+
+  const todayKey = toKey(startOfDay(new Date()));
+  const list = parent.createDiv({ cls: "ed-habit-timeline" });
+  for (const key of dates) {
+    const day = new Date(key + "T00:00:00");
+    const row = list.createDiv({ cls: "ed-habit-timeline-row" });
+    row.createDiv({ cls: "ed-habit-timeline-dot" });
+    const label = row.createSpan({ cls: "ed-habit-timeline-date" });
+    const wk = t.weekdayFull[isoWeekday(day) - 1];
+    label.setText(
+      key === todayKey
+        ? `${t.formatDayTitle(day.getMonth() + 1, day.getDate())} · ${t.deadlineToday}`
+        : `${t.formatDayTitle(day.getMonth() + 1, day.getDate())} ${wk}`
+    );
+    row.setAttr("aria-label", t.habitUnchecked);
+    row.onclick = async () => {
+      const ok = await toggleHabitDay(store, habit.id, key);
+      if (!ok) return;
+      ctx.refresh();
+      notifyUndo(t.habitUncheckedNotice, t.undo, async () => {
+        await toggleHabitDay(store, habit.id, key);
+        ctx.refresh();
+      });
+    };
   }
 }
 

@@ -1763,12 +1763,21 @@
 
 /* ---- clock module ---- */
 
+/* The flip digits need to shrink with the card's own width, not the window's
+   — since Today sits beside the clock (see .ed-compact-grid), the card can
+   end up much narrower than the viewport at any window size, and a
+   viewport-only media query has no way to see that. */
+.ed-clock {
+  container-type: inline-size;
+}
+
 .ed-clock-face {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
   padding: 6px 0 16px;
+  min-width: 0;
 }
 
 .ed-clock-meridiem {
@@ -2007,8 +2016,20 @@
 }
 
 @media (max-width: 620px) {
-  .ed-flip-row { --ed-flip-h: 64px; }
   .ed-alarm-time { width: 96px; font-size: 1.1em; }
+}
+
+/* Card-width-driven, not window-width-driven — see the .ed-clock comment
+   above. Three steps down from the 96px default: 480px of card is roughly
+   what six 96px-tall digits plus two separators need without crowding. */
+@container (max-width: 480px) {
+  .ed-flip-row { --ed-flip-h: 64px; }
+}
+@container (max-width: 340px) {
+  .ed-flip-row { --ed-flip-h: 48px; }
+}
+@container (max-width: 260px) {
+  .ed-flip-row { --ed-flip-h: 36px; gap: 6px; }
 }
 
 /* ------------------------------------------------------------ deadlines */
@@ -2233,6 +2254,76 @@
   gap: 12px;
   max-height: 280px;
   overflow-y: auto;
+}
+
+/* Dedicated Habits page: one header + check-in timeline per habit,
+   separated by .ed-divider. */
+.ed-habit-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ed-habit-timeline-count {
+  font-size: 0.76em;
+  color: var(--text-muted);
+}
+
+/* Only the days actually checked off, newest first — a log, not a calendar.
+   Dots are joined by a short line segment above each one (skipped on the
+   first row) rather than one continuous rule, so it works with an ordinary
+   flex list instead of needing absolutely-positioned geometry. */
+.ed-habit-timeline {
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.ed-habit-timeline-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 6px;
+  border-radius: var(--ed-radius-sm);
+  cursor: pointer;
+}
+
+.ed-habit-timeline-row:hover {
+  background: var(--background-secondary);
+}
+
+.ed-habit-timeline-row:hover .ed-habit-timeline-date {
+  text-decoration: line-through;
+  text-decoration-color: var(--text-muted);
+}
+
+.ed-habit-timeline-row::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: -6px;
+  width: 2px;
+  height: 6px;
+  background: var(--background-modifier-border);
+}
+
+.ed-habit-timeline-row:first-child::before {
+  display: none;
+}
+
+.ed-habit-timeline-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9AD0B4;
+}
+
+.ed-habit-timeline-date {
+  font-size: 0.82em;
+  color: var(--text-normal);
 }
 
 .ed-habit-row {
