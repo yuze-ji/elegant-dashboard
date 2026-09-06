@@ -75,6 +75,8 @@ export class DataService {
       status: p.status,
       priority: p.priority,
       progress: Math.max(0, Math.min(100, Number(p.progress) || 0)),
+      createdAt: p.createdAt,
+      dueDate: p.dueDate,
       id: p.id,
     }));
   }

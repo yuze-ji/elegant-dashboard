@@ -163,6 +163,7 @@ export async function updateProject(
   if (patch.progress !== undefined) {
     target.progress = Math.max(0, Math.min(100, Math.round(patch.progress)));
   }
+  if (patch.dueDate !== undefined) target.dueDate = patch.dueDate;
   await store.save();
   return true;
 }
@@ -189,7 +190,7 @@ export async function restoreProject(
 
 export async function addProject(
   store: Store,
-  project: { name: string; status: string; priority: string; progress: number }
+  project: { name: string; status: string; priority: string; progress: number; dueDate: string | null }
 ): Promise<boolean> {
   const name = project.name.trim();
   if (!name) return false;
@@ -200,6 +201,9 @@ export async function addProject(
     status: project.status,
     priority: project.priority,
     progress: Math.max(0, Math.min(100, Math.round(project.progress))),
+    // Stamped once, here, and never edited afterward — the Gantt bar's start.
+    createdAt: toKey(new Date()),
+    dueDate: project.dueDate,
   });
   await store.save();
   return true;

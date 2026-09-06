@@ -4,6 +4,8 @@ export interface Strings {
   dashboard: string;
   noteActivity: string;
   projectsBoard: string;
+  ganttTitle: string;
+  ganttNoDates: string;
   taskboard: string;
   taskDetails: string;
   focusSession: string;
@@ -138,6 +140,8 @@ export const I18N: Record<Lang, Strings> = {
     dashboard: "仪表板",
     noteActivity: "笔记活动",
     projectsBoard: "项目概览",
+    ganttTitle: "项目甘特图",
+    ganttNoDates: "还没有项目设置截止日期——设置一个才会出现在这里",
     taskboard: "任务统计",
     taskDetails: "任务详情",
     focusSession: "专注时段",
@@ -273,6 +277,8 @@ export const I18N: Record<Lang, Strings> = {
     dashboard: "Dashboard",
     noteActivity: "Note Activity",
     projectsBoard: "Projects Board",
+    ganttTitle: "Project Gantt Chart",
+    ganttNoDates: "No projects have a due date yet — set one to show it here",
     taskboard: "Taskboard",
     taskDetails: "Task Details",
     focusSession: "Focus Session",

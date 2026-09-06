@@ -119,7 +119,9 @@ export class TaskEditModal extends Modal {
   }
 }
 
-export type ProjectDraft = Omit<ProjectItem, "id">;
+// `createdAt` is stamped once at creation and never user-editable — see
+// addProject in mutations.ts — so it has no place in this form.
+export type ProjectDraft = Omit<ProjectItem, "id" | "createdAt">;
 
 export class ProjectEditModal extends Modal {
   private draft: ProjectDraft;
@@ -174,6 +176,21 @@ export class ProjectEditModal extends Modal {
           .setDynamicTooltip()
           .onChange((v) => (this.draft.progress = v))
       );
+
+    new Setting(contentEl)
+      .setName(L({ cn: "截止日期", en: "Due date" }))
+      .setDesc(
+        L({
+          cn: "留空则不出现在甘特图里（甘特图需要终点才能画出一条时间条）",
+          en: "Leave empty to skip this project on the Gantt chart — a bar needs an end",
+        })
+      )
+      .addText((tx) => {
+        tx.inputEl.type = "date";
+        tx.setValue(this.draft.dueDate ?? "").onChange(
+          (v) => (this.draft.dueDate = v || null)
+        );
+      });
 
     const buttons = new Setting(contentEl);
     if (this.opts.onDelete) {

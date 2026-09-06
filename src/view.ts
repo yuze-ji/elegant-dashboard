@@ -10,6 +10,7 @@ import { renderHabits, renderHabitsPage } from "./components/habits";
 import { renderTodayOverview } from "./components/today";
 import { renderFocusTimer } from "./components/focusTimer";
 import { renderProjects } from "./components/projects";
+import { renderGantt } from "./components/gantt";
 import { renderTaskboard } from "./components/taskboard";
 import { renderTaskDetails } from "./components/taskDetails";
 import { renderRecent } from "./components/recent";
@@ -136,6 +137,7 @@ export class DashboardView extends ItemView {
 
     if (this.page === "projects") {
       guard("projects", () => renderProjects(grid, ctx, projects, { showDone: true }));
+      guard("gantt", () => renderGantt(grid, ctx, projects));
       guard("taskboard", () => renderTaskboard(grid, ctx, counts));
     } else if (this.page === "tasks") {
       guard("taskboard", () => renderTaskboard(grid, ctx, counts));

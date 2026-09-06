@@ -205,6 +205,10 @@ export interface StoredProject {
   status: string;
   priority: string;
   progress: number;
+  /** YYYY-MM-DD, set once at creation — the Gantt bar's start, never edited. */
+  createdAt: string;
+  /** YYYY-MM-DD, optional — the Gantt bar's end. No due date = no bar. */
+  dueDate: string | null;
 }
 
 export interface ProjectItem {
@@ -212,6 +216,8 @@ export interface ProjectItem {
   status: "active" | "paused" | "done" | "backlog" | string;
   priority: "high" | "medium" | "low" | string;
   progress: number;
+  createdAt: string;
+  dueDate: string | null;
   id: string;
 }
 

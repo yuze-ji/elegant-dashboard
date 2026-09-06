@@ -12,14 +12,16 @@ import {
 
 const storeOf = (ctx: Ctx): Store => ({ settings: ctx.settings, save: ctx.save });
 
-const STATUS_ICON: Record<string, string> = {
+// Exported for the Gantt chart, so a project's bar and its card badge always
+// agree on what "high priority" looks like.
+export const STATUS_ICON: Record<string, string> = {
   active: "▶",
   paused: "⏸",
   done: "✓",
   backlog: "○",
 };
 
-const PRIORITY_COLOR: Record<string, string> = {
+export const PRIORITY_COLOR: Record<string, string> = {
   high: "#E8A0A0",
   medium: "#F0A868",
   low: "#8A9BA3",
@@ -70,7 +72,7 @@ export function renderProjects(
   addBtn.onclick = () => {
     new ProjectEditModal(ctx.app, ctx.settings.lang, {
       title: { cn: "新增项目", en: "New project" },
-      initial: { name: "", status: "active", priority: "medium", progress: 0 },
+      initial: { name: "", status: "active", priority: "medium", progress: 0, dueDate: null },
       onSubmit: async (draft: ProjectDraft) => {
         if (await addProject(storeOf(ctx), draft)) ctx.refresh();
       },
@@ -107,6 +109,7 @@ function renderProjectCard(
         status: p.status,
         priority: p.priority,
         progress: p.progress,
+        dueDate: p.dueDate,
       },
       onSubmit: async (draft) => {
         if (await updateProject(storeOf(ctx), p, draft)) ctx.refresh();

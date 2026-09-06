@@ -545,7 +545,9 @@
 .elegant-dashboard.is-glass .ed-task-glyph,
 .elegant-dashboard.is-glass .ed-task-empty,
 .elegant-dashboard.is-glass .ed-empty,
-.elegant-dashboard.is-glass .ed-focus-set-label {
+.elegant-dashboard.is-glass .ed-focus-set-label,
+.elegant-dashboard.is-glass .ed-gantt-month,
+.elegant-dashboard.is-glass .ed-gantt-pct {
   color: var(--ed-ink-soft);
   text-shadow: var(--ed-halo);
 }
@@ -561,6 +563,7 @@
 .elegant-dashboard.is-glass .ed-recent-link,
 .elegant-dashboard.is-glass .ed-taskboard-value,
 .elegant-dashboard.is-glass .ed-progress-label,
+.elegant-dashboard.is-glass .ed-gantt-label,
 .elegant-dashboard.is-glass .ed-week-count {
   color: var(--ed-ink);
   text-shadow: var(--ed-halo);
@@ -1060,6 +1063,106 @@
 }
 
 /* -------------------------------------------------------------- projects */
+
+/* ------------------------------------------------------------------ gantt */
+
+.ed-gantt-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.ed-gantt-label-spacer {
+  flex: 0 0 140px;
+}
+
+.ed-gantt-axis {
+  flex: 1;
+  position: relative;
+  height: 14px;
+  min-width: 0;
+}
+
+.ed-gantt-month {
+  position: absolute;
+  top: 0;
+  font-size: 0.72em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ed-gantt-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.ed-gantt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ed-gantt-label {
+  flex: 0 0 140px;
+  font-size: 0.82em;
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-gantt-track {
+  flex: 1;
+  position: relative;
+  height: 20px;
+  min-width: 0;
+}
+
+/* A thin accent line across every row's track (repeated per row rather than
+   one shared overlay) — all tracks share the same date range, so the local
+   percentage math is identical and this avoids aligning two separate flex
+   columns (header vs. label+track) by hand. */
+.ed-gantt-today {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--interactive-accent);
+  opacity: 0.55;
+  z-index: 1;
+}
+
+.ed-gantt-bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  min-width: 6px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.ed-gantt-bar-fill {
+  height: 100%;
+  border-radius: 5px 0 0 5px;
+}
+
+.ed-gantt-row.is-overdue .ed-gantt-bar {
+  box-shadow: 0 0 0 1px #e88e8e;
+}
+
+.ed-gantt-pct {
+  flex: 0 0 34px;
+  text-align: right;
+  font-size: 0.74em;
+  color: var(--text-muted);
+}
 
 .ed-project-grid {
   display: grid;

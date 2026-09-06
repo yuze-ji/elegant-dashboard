@@ -1,5 +1,12 @@
 import { Plugin, WorkspaceLeaf } from "obsidian";
-import { DEFAULT_SETTINGS, DashboardSettings, DeadlineItem, HabitItem } from "./types";
+import {
+  DEFAULT_SETTINGS,
+  DashboardSettings,
+  DeadlineItem,
+  HabitItem,
+  StoredProject,
+} from "./types";
+import { toKey } from "./dates";
 import { I18N, Strings } from "./i18n";
 import { DataService } from "./data";
 import { FocusEngine } from "./focus";
@@ -151,12 +158,28 @@ export default class DashboardPlugin extends Plugin {
         (h) => ({ targetPerWeek: null, ...h }) as HabitItem
       ),
       habitLog: { ...(raw?.habitLog || {}) },
+      // `createdAt`/`dueDate` postdate the Gantt chart — a project from
+      // before that has no real creation date on record, so it falls back to
+      // "today" rather than crashing the Gantt's date-range math on
+      // `undefined`. This guess is only persisted once something else saves
+      // the settings; until then it recomputes (harmlessly) on every reload.
+      storedProjects: ((raw?.storedProjects as Partial<StoredProject>[] | undefined) || []).map(
+        (p) => ({ createdAt: toKey(new Date()), dueDate: null, ...p }) as StoredProject
+      ),
     };
   }
 
   async loadSettings() {
     const raw = (await this.loadData()) as Partial<DashboardSettings> | null;
     this.settings = this.mergeSettings(raw);
+    // A legacy project's guessed `createdAt` (see mergeSettings) would
+    // otherwise recompute to "today" on every single reload until something
+    // else happens to save — persist the guess once, immediately, so it
+    // stops moving.
+    const needsBackfill = (raw?.storedProjects || []).some(
+      (p) => !(p as Partial<StoredProject>).createdAt
+    );
+    if (needsBackfill) await this.saveSettings();
   }
 
   /**
