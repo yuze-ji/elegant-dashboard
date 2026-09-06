@@ -112,6 +112,12 @@ export interface DashboardSettings {
   habits: HabitItem[];
   /** habit id -> (date YYYY-MM-DD -> done) */
   habitLog: Record<string, Record<string, boolean>>;
+  /** Off by default — a plugin nagging you daily should be opt-in. */
+  habitReminderEnabled: boolean;
+  /** "HH:MM", 24h. */
+  habitReminderTime: string;
+  /** YYYY-MM-DD of the last time the reminder fired, so it fires once a day. */
+  habitReminderFiredDate: string | null;
   taskTargetToday: number;
   taskTargetWeek: number;
   taskTargetMonth: number;
@@ -149,6 +155,9 @@ export const DEFAULT_SETTINGS: DashboardSettings = {
   deadlines: [],
   habits: [],
   habitLog: {},
+  habitReminderEnabled: false,
+  habitReminderTime: "21:00",
+  habitReminderFiredDate: null,
   taskTargetToday: 5,
   taskTargetWeek: 25,
   taskTargetMonth: 100,

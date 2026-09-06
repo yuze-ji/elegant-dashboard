@@ -102,6 +102,7 @@ export interface Strings {
   deadlineRemindSameDay: string;
   deadlineRemindNDays: (n: number) => string;
   deadlineReminderNotice: (title: string, daysLeft: number) => string;
+  habitReminderNotice: (names: string[]) => string;
   habits: string;
   noHabits: string;
   addHabit: string;
@@ -242,6 +243,7 @@ export const I18N: Record<Lang, Strings> = {
       daysLeft === 0
         ? `⏳ 「${title}」就是今天`
         : `⏳ 「${title}」还有 ${daysLeft} 天`,
+    habitReminderNotice: (names) => `🔥 还没打卡：${names.join("、")}`,
     habits: "习惯追踪",
     noHabits: "还没有习惯，添加一个开始打卡吧",
     addHabit: "+ 添加",
@@ -378,6 +380,7 @@ export const I18N: Record<Lang, Strings> = {
       daysLeft === 0
         ? `⏳ "${title}" is due today`
         : `⏳ "${title}" due in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`,
+    habitReminderNotice: (names) => `🔥 Not checked in yet: ${names.join(", ")}`,
     habits: "Habits",
     noHabits: "No habits yet — add one to start tracking",
     addHabit: "+ Add",

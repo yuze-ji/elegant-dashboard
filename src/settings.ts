@@ -1,6 +1,7 @@
 import { App, Notice, PluginSettingTab, Setting, moment } from "obsidian";
 import type DashboardPlugin from "./main";
 import { MODULE_ORDER, ModuleId } from "./types";
+import { normalizeTime } from "./alarm";
 
 /**
  * Sentinel for the bundled Monet *Water Lilies* (1906, Ryerson). Resolved at
@@ -232,6 +233,33 @@ export class DashboardSettingTab extends PluginSettingTab {
       () => this.plugin.settings.alarmSound,
       (v) => (this.plugin.settings.alarmSound = v)
     );
+
+    new Setting(containerEl)
+      .setName(cn ? "习惯每日提醒" : "Daily habit reminder")
+      .setDesc(
+        cn
+          ? "到点后，只要还有习惯没打卡就弹一条提示；全部打卡完成则不提醒"
+          : "At this time, shows a reminder if any habit isn't checked in yet — skipped once everything is"
+      )
+      .addToggle((tg) =>
+        tg.setValue(this.plugin.settings.habitReminderEnabled).onChange(async (v) => {
+          this.plugin.settings.habitReminderEnabled = v;
+          // Re-arms today's check rather than waiting for tomorrow to
+          // notice the setting changed.
+          this.plugin.settings.habitReminderFiredDate = null;
+          await this.plugin.saveSettings();
+        })
+      )
+      .addText((tx) => {
+        tx.inputEl.type = "time";
+        tx.setValue(this.plugin.settings.habitReminderTime).onChange(async (v) => {
+          const normalized = normalizeTime(v);
+          if (!normalized) return;
+          this.plugin.settings.habitReminderTime = normalized;
+          this.plugin.settings.habitReminderFiredDate = null;
+          await this.plugin.saveSettings();
+        });
+      });
 
     new Setting(containerEl).setName(cn ? "外观" : "Appearance").setHeading();
 

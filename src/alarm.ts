@@ -253,10 +253,12 @@ export class AlarmEngine {
     const from = Math.max(this.lastCheck, now - CATCH_UP_MS);
     this.lastCheck = now;
 
-    // Deadline reminders share this same background-safe tick rather than
-    // running their own Worker — one alarm ringing does not make a due
-    // reminder any less worth surfacing, so this runs regardless of `ringing`.
+    // Deadline and habit reminders share this same background-safe tick
+    // rather than running their own Worker — one alarm ringing does not make
+    // a due reminder any less worth surfacing, so both run regardless of
+    // `ringing`.
     void this.checkDeadlineReminders();
+    void this.checkHabitReminder(from, now);
 
     if (this.ringing) return;
 
@@ -296,6 +298,47 @@ export class AlarmEngine {
       new Notice(t.deadlineReminderNotice(d.title, days), 10_000);
     }
     if (changed) await this.save();
+  }
+
+  /**
+   * One global daily reminder, not per-habit — checked with the same
+   * range-based "did this HH:MM fall inside (from, now]" logic `dueBetween`
+   * uses for alarms, so a throttled background tick still catches it rather
+   * than needing an exact-minute match. Silent (no Notice, but still marks
+   * the day as fired so it doesn't re-check every tick) once every habit is
+   * already checked in — the point is to nag about what's left undone, not
+   * to congratulate.
+   */
+  private async checkHabitReminder(from: number, to: number) {
+    if (!this.settings.habitReminderEnabled) return;
+    const time = normalizeTime(this.settings.habitReminderTime);
+    if (!time) return;
+    const [h, m] = time.split(":").map(Number);
+
+    const candidates = new Set<number>();
+    for (const base of [new Date(from), new Date(to)]) {
+      const d = new Date(base);
+      d.setHours(h, m, 0, 0);
+      candidates.add(d.getTime());
+    }
+    let due: Date | null = null;
+    for (const ts of [...candidates].sort((a, b) => a - b)) {
+      if (ts <= from || ts > to) continue;
+      due = new Date(ts);
+      break;
+    }
+    if (!due) return;
+
+    const todayKey = toKey(due);
+    if (this.settings.habitReminderFiredDate === todayKey) return;
+    this.settings.habitReminderFiredDate = todayKey;
+
+    const unchecked = this.settings.habits.filter(
+      (h) => !this.settings.habitLog[h.id]?.[todayKey]
+    );
+    await this.save();
+    if (unchecked.length === 0) return;
+    new Notice(this.strings().habitReminderNotice(unchecked.map((h) => h.name)), 10_000);
   }
 
   private ring(alarm: AlarmItem) {
