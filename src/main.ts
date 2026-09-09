@@ -1,6 +1,7 @@
 import { Plugin, WorkspaceLeaf } from "obsidian";
 import {
   DEFAULT_SETTINGS,
+  AlarmItem,
   DashboardSettings,
   DeadlineItem,
   HabitItem,
@@ -143,7 +144,13 @@ export default class DashboardPlugin extends Plugin {
       modules: { ...DEFAULT_SETTINGS.modules, ...(raw?.modules || {}) },
       focusLog: { ...(raw?.focusLog || {}) },
       // Cloned, so an install with no saved alarms does not mutate the defaults.
-      alarms: (raw?.alarms || []).map((a) => ({ ...a, days: [...(a.days || [])] })),
+      alarms: (raw?.alarms || []).map((a) => ({
+        ...a,
+        repeat: (a as Partial<AlarmItem>).repeat ||
+          ((a.days || []).length > 0 ? "weekly" : "daily"),
+        date: (a as Partial<AlarmItem>).date || null,
+        days: [...(a.days || [])],
+      })),
       // `remindDaysBefore`/`reminded` postdate the first Deadlines release;
       // spreading `d` last keeps real values while filling the gap for older
       // backups and pre-upgrade data. `d` is typed as partial here (rather

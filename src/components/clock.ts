@@ -144,18 +144,50 @@ function renderRow(
   labelInput.onchange = () => void engine.update(alarm.id, { label: labelInput.value }, true);
 
   const days = main.createDiv({ cls: "ed-alarm-days" });
-  for (let iso = 1; iso <= 7; iso++) {
-    const chip = days.createEl("button", {
-      cls: "ed-alarm-day",
-      text: t.weekdayShort[iso - 1],
-    });
-    chip.toggleClass("is-on", alarm.days.includes(iso));
-    chip.onclick = () => {
-      const next = alarm.days.includes(iso)
-        ? alarm.days.filter((d) => d !== iso)
-        : [...alarm.days, iso].sort((a, b) => a - b);
-      void engine.update(alarm.id, { days: next });
+  const schedule = days.createEl("select", { cls: "ed-alarm-repeat" });
+  for (const [value, text] of [
+    ["daily", t.alarmDaily],
+    ["weekly", t.alarmWeekly],
+    ["once", t.alarmOnce],
+  ] as const) schedule.createEl("option", { value, text });
+  schedule.value = alarm.repeat;
+  schedule.onchange = () => {
+    const repeat = schedule.value as AlarmItem["repeat"];
+    let date = alarm.date;
+    if (repeat === "once" && !date) date = defaultOnceDate(alarm.time);
+    const selectedDays = repeat === "weekly" && alarm.days.length === 0
+      ? [isoWeekday(new Date())]
+      : alarm.days;
+    void engine.update(alarm.id, { repeat, date, days: selectedDays });
+  };
+
+  if (alarm.repeat === "once") {
+    const dateInput = days.createEl("input", { cls: "ed-alarm-date", type: "date" });
+    dateInput.value = alarm.date || defaultOnceDate(alarm.time);
+    dateInput.onchange = () => {
+      if (!dateInput.value) {
+        new Notice(t.alarmInvalidDate);
+        dateInput.value = alarm.date || defaultOnceDate(alarm.time);
+        return;
+      }
+      void engine.update(alarm.id, { date: dateInput.value });
     };
+  }
+
+  if (alarm.repeat === "weekly") {
+    for (let iso = 1; iso <= 7; iso++) {
+      const chip = days.createEl("button", {
+        cls: "ed-alarm-day",
+        text: t.weekdayShort[iso - 1],
+      });
+      chip.toggleClass("is-on", alarm.days.includes(iso));
+      chip.onclick = () => {
+        const next = alarm.days.includes(iso)
+          ? alarm.days.filter((d) => d !== iso)
+          : [...alarm.days, iso].sort((a, b) => a - b);
+        void engine.update(alarm.id, { days: next });
+      };
+    }
   }
 
   const hint = main.createDiv({ cls: "ed-alarm-next" });
@@ -182,7 +214,20 @@ function hintFor(alarm: AlarmItem, now: Date, t: Strings): string {
   const next = nextRingAt(alarm, now);
   if (!next) return "";
   const mins = Math.max(1, Math.round((next.getTime() - now.getTime()) / 60000));
-  const repeat = alarm.days.length === 0 ? t.alarmEveryDay : "";
+  const repeat = alarm.repeat === "daily" ? t.alarmEveryDay : "";
   const countdown = t.alarmNextIn(Math.floor(mins / 60), mins % 60);
   return repeat ? `${repeat}　${countdown}` : countdown;
+}
+
+function defaultOnceDate(time: string): string {
+  const now = new Date();
+  const normalized = normalizeTime(time) || "08:00";
+  const [h, m] = normalized.split(":").map(Number);
+  const due = new Date(now);
+  due.setHours(h, m, 0, 0);
+  if (due.getTime() <= now.getTime()) due.setDate(due.getDate() + 1);
+  const yyyy = due.getFullYear();
+  const mm = String(due.getMonth() + 1).padStart(2, "0");
+  const dd = String(due.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }

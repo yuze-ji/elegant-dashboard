@@ -324,13 +324,20 @@ export async function restoreHabit(store: Store, removed: RemovedHabit): Promise
   await store.save();
 }
 
-/** Toggles a single day for a habit. `dateKey` is YYYY-MM-DD. */
+/**
+ * Toggles a single day for a habit. `dateKey` is YYYY-MM-DD, and must be
+ * *today* — enforced here, not just by the UI omitting a click handler on
+ * past cells, so no future call site can quietly back-fill or erase a day
+ * after the fact and undermine what the streak and the heatmap are supposed
+ * to mean: a fixed, honest record.
+ */
 export async function toggleHabitDay(
   store: Store,
   habitId: string,
   dateKey: string
 ): Promise<boolean> {
   if (!store.settings.habits.some((h) => h.id === habitId)) return missing();
+  if (dateKey !== toKey(new Date())) return false;
   const log = (store.settings.habitLog[habitId] ??= {});
   if (log[dateKey]) delete log[dateKey];
   else log[dateKey] = true;

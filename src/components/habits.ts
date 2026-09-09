@@ -1,7 +1,14 @@
 import { setIcon } from "obsidian";
 import { HabitItem } from "../types";
-import { Ctx, card, empty, notifyUndo } from "../ui";
-import { addDays, isoWeekday, startOfDay, startOfIsoWeek, toKey } from "../dates";
+import { Ctx, HoverTooltip, card, notifyUndo } from "../ui";
+import { STEP } from "./activity";
+import {
+  addDays,
+  isoWeekday,
+  startOfDay,
+  startOfIsoWeek,
+  toKey,
+} from "../dates";
 import {
   Store,
   addHabit,
@@ -39,7 +46,7 @@ export function renderHabits(parent: HTMLElement, ctx: Ctx) {
 
 /**
  * The dedicated Habits page: same per-habit header as the Overview card, but
- * with a full scrollable year timeline instead of a 14-day strip — the same
+ * with a full scrollable year heatmap instead of a 14-day strip — the same
  * "compact card on Overview, full history of its own page" split Deadlines
  * and Tasks use.
  */
@@ -56,7 +63,7 @@ export function renderHabitsPage(parent: HTMLElement, ctx: Ctx) {
       const block = root.createDiv({ cls: "ed-habit-block" });
       const head = block.createDiv({ cls: "ed-habit-head" });
       renderHabitHeader(head, ctx, store, h);
-      renderHabitTimeline(block, ctx, store, h);
+      renderHabitHeatmap(block, ctx, store, h);
     });
   }
 
@@ -120,12 +127,19 @@ function renderHabitRow(list: HTMLElement, ctx: Ctx, store: Store, habit: HabitI
   for (let i = STRIP_DAYS - 1; i >= 0; i--) {
     const key = toKey(addDays(today, -i));
     const done = !!log?.[key];
+    const isToday = key === todayKey;
     const dot = strip.createDiv({ cls: "ed-habit-dot" });
     if (done) dot.addClass("is-done");
-    if (key === todayKey) dot.addClass("is-today");
+    if (isToday) dot.addClass("is-today");
     dot.setAttr("aria-label", `${key}${done ? " ✓" : ""}`);
-    dot.onclick = () =>
-      void toggleHabitDay(store, habit.id, key).then((ok) => ok && ctx.refresh());
+    // Only today is a check-in button — yesterday and earlier are a
+    // read-only record, so an old day can't be quietly back-filled or
+    // un-checked days after the fact.
+    if (isToday) {
+      dot.addClass("is-clickable");
+      dot.onclick = () =>
+        void toggleHabitDay(store, habit.id, key).then((ok) => ok && ctx.refresh());
+    }
   }
 }
 
@@ -170,51 +184,93 @@ function renderHabitHeader(head: HTMLElement, ctx: Ctx, store: Store, habit: Hab
 }
 
 /**
- * A log of check-ins, newest first — only days actually marked done, not a
- * grid of every day including the blanks. A dot-and-line timeline rather
- * than a plain list, but the content is deliberately sparse: this reads as
- * "here's what I did", not "here's a calendar".
+ * A full year of the check-in record as a heatmap, same visual language as
+ * the Activity module's grid (reuses its .ed-scroll/.ed-grid/.ed-pill
+ * structure and cell sizing). Unlike Activity's 5-level intensity, a habit
+ * day is binary — done or not — so a cell is either lit or it isn't.
+ *
+ * Only *today's* cell is clickable. Every earlier day is a fixed record:
+ * back-filling or erasing a day after the fact would make the streak and
+ * the heatmap mean less, not more.
  */
-function renderHabitTimeline(parent: HTMLElement, ctx: Ctx, store: Store, habit: HabitItem) {
+function renderHabitHeatmap(parent: HTMLElement, ctx: Ctx, store: Store, habit: HabitItem) {
   const { t } = ctx;
   const log = ctx.settings.habitLog[habit.id] ?? {};
-  // Date-string keys sort lexicographically the same as chronologically
-  // (YYYY-MM-DD), so a plain string sort doubles as a date sort.
-  const dates = Object.keys(log)
-    .filter((d) => log[d])
-    .sort()
-    .reverse();
+  const today = startOfDay(new Date());
+  const todayKey = toKey(today);
+  const start = addDays(today, -364);
 
-  parent.createDiv({ cls: "ed-habit-timeline-count", text: t.habitCheckinCount(dates.length) });
+  const total = Object.values(log).filter(Boolean).length;
+  parent.createDiv({ cls: "ed-habit-timeline-count", text: t.habitCheckinCount(total) });
 
-  if (dates.length === 0) {
-    empty(parent, t.habitNoCheckins);
-    return;
-  }
+  const tooltip = new HoverTooltip(ctx.onCleanup);
 
-  const todayKey = toKey(startOfDay(new Date()));
-  const list = parent.createDiv({ cls: "ed-habit-timeline" });
-  for (const key of dates) {
-    const day = new Date(key + "T00:00:00");
-    const row = list.createDiv({ cls: "ed-habit-timeline-row" });
-    row.createDiv({ cls: "ed-habit-timeline-dot" });
-    const label = row.createSpan({ cls: "ed-habit-timeline-date" });
-    const wk = t.weekdayFull[isoWeekday(day) - 1];
-    label.setText(
-      key === todayKey
-        ? `${t.formatDayTitle(day.getMonth() + 1, day.getDate())} · ${t.deadlineToday}`
-        : `${t.formatDayTitle(day.getMonth() + 1, day.getDate())} ${wk}`
-    );
-    row.setAttr("aria-label", t.habitUnchecked);
-    row.onclick = async () => {
-      const ok = await toggleHabitDay(store, habit.id, key);
-      if (!ok) return;
-      ctx.refresh();
-      notifyUndo(t.habitUncheckedNotice, t.undo, async () => {
-        await toggleHabitDay(store, habit.id, key);
-        ctx.refresh();
+  const scroll = parent.createDiv({ cls: "ed-scroll" });
+  const monthsRow = scroll.createDiv({ cls: "ed-months" });
+  const gridBody = scroll.createDiv({ cls: "ed-grid-body" });
+
+  const wkLabels = gridBody.createDiv({ cls: "ed-wk-labels" });
+  t.weekdayShort.forEach((w, i) => {
+    wkLabels.createDiv({ cls: "ed-wk-label", text: i % 2 === 0 ? w : "" });
+  });
+
+  const gridEl = gridBody.createDiv({ cls: "ed-grid" });
+  let cursor = startOfIsoWeek(start);
+  let weekIndex = 0;
+  let lastMonth = -1;
+
+  while (cursor.getTime() <= today.getTime()) {
+    const col = gridEl.createDiv({ cls: "ed-week-col" });
+    for (let i = 0; i < 7; i++) {
+      const day = addDays(cursor, i);
+      const inRange = day.getTime() >= start.getTime() && day.getTime() <= today.getTime();
+      const cell = col.createDiv({ cls: "ed-pill ed-habit-pill" });
+      if (!inRange) {
+        cell.addClass("is-blank");
+        continue;
+      }
+
+      const key = toKey(day);
+      const done = !!log[key];
+      const isToday = key === todayKey;
+      if (done) cell.addClass("is-done");
+      if (isToday) {
+        // Two calls, not addClass("is-today is-clickable") — the space-
+        // separated form throws (classList.add rejects multi-token strings),
+        // which silently killed this and every later cell in the loop.
+        cell.addClass("is-today");
+        cell.addClass("is-clickable");
+        cell.onclick = () =>
+          void toggleHabitDay(store, habit.id, key).then((ok) => ok && ctx.refresh());
+      }
+
+      cell.addEventListener("mouseenter", () => {
+        tooltip.el.empty();
+        const wk = t.weekdayFull[isoWeekday(day) - 1];
+        tooltip.el.createDiv({
+          cls: "ed-tooltip-date",
+          text: `${t.formatDayTitle(day.getMonth() + 1, day.getDate())} ${wk}`,
+        });
+        tooltip.el.createDiv({
+          cls: "ed-tooltip-count",
+          text: done ? t.habitCheckedIn : t.habitUnchecked,
+        });
+        tooltip.show();
       });
-    };
+      cell.addEventListener("mousemove", (e: MouseEvent) => tooltip.move(e));
+      cell.addEventListener("mouseleave", () => tooltip.hide());
+
+      if (day.getDate() <= 7 && day.getMonth() !== lastMonth) {
+        lastMonth = day.getMonth();
+        const label = monthsRow.createSpan({
+          cls: "ed-month-label",
+          text: t.monthNames[day.getMonth()],
+        });
+        label.style.left = `${weekIndex * STEP}px`;
+      }
+    }
+    cursor = addDays(cursor, 7);
+    weekIndex++;
   }
 }
 

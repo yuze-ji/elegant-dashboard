@@ -60,12 +60,17 @@ export const SIDEBAR_MODULES: ModuleId[] = ["recent", "stats"];
 /** How the focus timer draws its remaining time. */
 export type FocusClockStyle = "dial" | "flip";
 
+export type AlarmRepeat = "daily" | "weekly" | "once";
+
 export interface AlarmItem {
   id: string;
   /** "HH:MM", always 24h regardless of the display setting. */
   time: string;
   label: string;
   enabled: boolean;
+  repeat: AlarmRepeat;
+  /** YYYY-MM-DD for a one-time alarm; null for repeating alarms. */
+  date: string | null;
   /** ISO weekdays (1 = Mon … 7 = Sun) to ring on. Empty = every day. */
   days: number[];
   /** "YYYY-MM-DDTHH:MM" of the last ring, so one minute cannot fire twice. */

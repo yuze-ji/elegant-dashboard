@@ -2018,6 +2018,20 @@
   flex-wrap: wrap;
 }
 
+.ed-alarm-repeat,
+.ed-alarm-date {
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--ed-radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.72em;
+  box-shadow: none;
+}
+
+.ed-alarm-date { width: 132px; }
+
 .ed-alarm-day {
   /* A pill, not a circle: the English weekday labels are three characters. */
   min-width: 22px;
@@ -2359,7 +2373,7 @@
   overflow-y: auto;
 }
 
-/* Dedicated Habits page: one header + check-in timeline per habit,
+/* Dedicated Habits page: one header + check-in heatmap per habit,
    separated by .ed-divider. */
 .ed-habit-block {
   display: flex;
@@ -2372,61 +2386,32 @@
   color: var(--text-muted);
 }
 
-/* Only the days actually checked off, newest first — a log, not a calendar.
-   Dots are joined by a short line segment above each one (skipped on the
-   first row) rather than one continuous rule, so it works with an ordinary
-   flex list instead of needing absolutely-positioned geometry. */
-.ed-habit-timeline {
-  display: flex;
-  flex-direction: column;
-  max-height: 280px;
-  overflow-y: auto;
+/* A binary version of the Activity module's heatmap cell (.ed-pill) — done
+   or not, no 5-level intensity. Every cell shows a tooltip on hover, but
+   only .is-today additionally gets .is-clickable: history is read-only, so
+   .ed-pill's default pointer cursor would be a false affordance on any day
+   but today. */
+.ed-habit-pill:not(.is-clickable) {
+  cursor: default;
+  transform: none;
+  box-shadow: none;
 }
 
-.ed-habit-timeline-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 6px;
-  border-radius: var(--ed-radius-sm);
-  cursor: pointer;
+.ed-habit-pill:not(.is-clickable):hover {
+  transform: none;
+  box-shadow: none;
 }
 
-.ed-habit-timeline-row:hover {
-  background: var(--background-secondary);
-}
-
-.ed-habit-timeline-row:hover .ed-habit-timeline-date {
-  text-decoration: line-through;
-  text-decoration-color: var(--text-muted);
-}
-
-.ed-habit-timeline-row::before {
-  content: "";
-  position: absolute;
-  left: 10px;
-  top: -6px;
-  width: 2px;
-  height: 6px;
-  background: var(--background-modifier-border);
-}
-
-.ed-habit-timeline-row:first-child::before {
-  display: none;
-}
-
-.ed-habit-timeline-dot {
-  flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.ed-habit-pill.is-done {
   background: #9AD0B4;
 }
 
-.ed-habit-timeline-date {
-  font-size: 0.82em;
-  color: var(--text-normal);
+.ed-habit-pill.is-today {
+  box-shadow: 0 0 0 2px var(--interactive-accent);
+}
+
+.ed-habit-pill.is-clickable:hover {
+  transform: scale(1.15);
 }
 
 .ed-habit-row {
@@ -2511,11 +2496,17 @@
   border-radius: 4px;
   background: var(--ed-heat-0);
   border: 1px solid transparent;
-  cursor: pointer;
+  /* Plain display by default — only .is-clickable (today) gets the pointer
+     cursor and hover affordance; yesterday and earlier are a fixed record. */
+  cursor: default;
   transition: transform 0.1s ease;
 }
 
-.ed-habit-dot:hover {
+.ed-habit-dot.is-clickable {
+  cursor: pointer;
+}
+
+.ed-habit-dot.is-clickable:hover {
   transform: scale(1.2);
 }
 

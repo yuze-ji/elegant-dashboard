@@ -84,6 +84,10 @@ export interface Strings {
   alarmUntitled: string;
   alarmLabelPlaceholder: string;
   alarmEveryDay: string;
+  alarmDaily: string;
+  alarmWeekly: string;
+  alarmOnce: string;
+  alarmInvalidDate: string;
   alarmOff: string;
   alarmDelete: string;
   alarmStop: string;
@@ -113,9 +117,8 @@ export interface Strings {
   habitWeekProgress: (done: number, target: number) => string;
   habitStreakWeeks: (n: number) => string;
   habitCheckinCount: (n: number) => string;
-  habitNoCheckins: string;
+  habitCheckedIn: string;
   habitUnchecked: string;
-  habitUncheckedNotice: string;
   todayOverview: string;
   todayTasksLeft: (n: number) => string;
   todayHabitsLeft: (n: number) => string;
@@ -221,6 +224,10 @@ export const I18N: Record<Lang, Strings> = {
     alarmUntitled: "闹钟",
     alarmLabelPlaceholder: "标签（可选）",
     alarmEveryDay: "每天",
+    alarmDaily: "每天",
+    alarmWeekly: "每周",
+    alarmOnce: "单次",
+    alarmInvalidDate: "请选择单次闹钟的日期",
     alarmOff: "已关闭",
     alarmDelete: "删除闹钟",
     alarmStop: "停止",
@@ -254,9 +261,8 @@ export const I18N: Record<Lang, Strings> = {
     habitWeekProgress: (done, target) => `本周 ${done}/${target}`,
     habitStreakWeeks: (n) => `🔥 连续 ${n} 周`,
     habitCheckinCount: (n) => `共 ${n} 次打卡`,
-    habitNoCheckins: "还没有打卡记录",
-    habitUnchecked: "点击取消这次打卡",
-    habitUncheckedNotice: "已取消打卡",
+    habitCheckedIn: "已打卡",
+    habitUnchecked: "未打卡",
     todayOverview: "今日概览",
     todayTasksLeft: (n) => `${n} 个任务待办`,
     todayHabitsLeft: (n) => `${n} 个习惯未打卡`,
@@ -359,6 +365,10 @@ export const I18N: Record<Lang, Strings> = {
     alarmUntitled: "Alarm",
     alarmLabelPlaceholder: "Label (optional)",
     alarmEveryDay: "Every day",
+    alarmDaily: "Daily",
+    alarmWeekly: "Weekly",
+    alarmOnce: "Once",
+    alarmInvalidDate: "Choose a date for the one-time alarm",
     alarmOff: "Off",
     alarmDelete: "Delete alarm",
     alarmStop: "Stop",
@@ -391,9 +401,8 @@ export const I18N: Record<Lang, Strings> = {
     habitWeekProgress: (done, target) => `${done}/${target} this week`,
     habitStreakWeeks: (n) => `🔥 ${n} week${n === 1 ? "" : "s"}`,
     habitCheckinCount: (n) => `${n} check-in${n === 1 ? "" : "s"}`,
-    habitNoCheckins: "No check-ins yet",
-    habitUnchecked: "Click to remove this check-in",
-    habitUncheckedNotice: "Check-in removed",
+    habitCheckedIn: "Checked in",
+    habitUnchecked: "Not checked in",
     todayOverview: "Today",
     todayTasksLeft: (n) => `${n} task${n === 1 ? "" : "s"} left today`,
     todayHabitsLeft: (n) => `${n} habit${n === 1 ? "" : "s"} not checked in`,

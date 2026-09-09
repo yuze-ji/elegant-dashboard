@@ -32,6 +32,13 @@ export function dueBetween(alarm: AlarmItem, from: number, to: number): Date | n
   if (!time) return null;
   const [h, m] = time.split(":").map(Number);
 
+  if (alarm.repeat === "once") {
+    if (!alarm.date) return null;
+    const due = new Date(`${alarm.date}T${time}:00`);
+    const ts = due.getTime();
+    return Number.isNaN(ts) || ts <= from || ts > to ? null : due;
+  }
+
   // The window is short, so only the day at each end can hold an occurrence.
   const candidates = new Set<number>();
   for (const base of [new Date(from), new Date(to)]) {
@@ -43,7 +50,7 @@ export function dueBetween(alarm: AlarmItem, from: number, to: number): Date | n
   for (const ts of [...candidates].sort((a, b) => a - b)) {
     if (ts <= from || ts > to) continue;
     const d = new Date(ts);
-    if (alarm.days.length > 0 && !alarm.days.includes(isoWeekday(d))) continue;
+    if (alarm.repeat === "weekly" && !alarm.days.includes(isoWeekday(d))) continue;
     return d;
   }
   return null;
@@ -55,13 +62,18 @@ export function nextRingAt(alarm: AlarmItem, from: Date = new Date()): Date | nu
   const time = normalizeTime(alarm.time);
   if (!time) return null;
   const [h, m] = time.split(":").map(Number);
+  if (alarm.repeat === "once") {
+    if (!alarm.date) return null;
+    const due = new Date(`${alarm.date}T${time}:00`);
+    return !Number.isNaN(due.getTime()) && due.getTime() > from.getTime() ? due : null;
+  }
   // Eight days covers any weekday pattern, including "today, later".
   for (let i = 0; i < 8; i++) {
     const d = new Date(from);
     d.setDate(d.getDate() + i);
     d.setHours(h, m, 0, 0);
     if (d.getTime() <= from.getTime()) continue;
-    if (alarm.days.length > 0 && !alarm.days.includes(isoWeekday(d))) continue;
+    if (alarm.repeat === "weekly" && !alarm.days.includes(isoWeekday(d))) continue;
     return d;
   }
   return null;
@@ -204,6 +216,8 @@ export class AlarmEngine {
       time,
       label: "",
       enabled: true,
+      repeat: "daily",
+      date: null,
       days: [],
       lastFired: null,
     };
@@ -222,7 +236,8 @@ export class AlarmEngine {
     if (!alarm) return;
     Object.assign(alarm, patch);
     // Re-arming a changed alarm must not be blocked by an old fire stamp.
-    if (patch.time !== undefined || patch.days !== undefined || patch.enabled === true) {
+    if (patch.time !== undefined || patch.days !== undefined || patch.repeat !== undefined ||
+        patch.date !== undefined || patch.enabled === true) {
       alarm.lastFired = null;
     }
     await this.save();
@@ -270,6 +285,7 @@ export class AlarmEngine {
       const stamp = alarmStamp(due);
       if (alarm.lastFired === stamp) continue;
       alarm.lastFired = stamp;
+      if (alarm.repeat === "once") alarm.enabled = false;
       await this.save();
       this.ring(alarm);
       return;
