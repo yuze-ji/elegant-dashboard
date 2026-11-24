@@ -93,6 +93,9 @@ The dashboard has eight in-plugin pages — nothing opens a markdown tab.
   reminder time of its own (a morning habit at 07:30, an evening one at
   22:00); habits with their own time are left out of the global reminder so
   nothing nags twice.
+  A habit can also be **linked to a language** (the 🔗 picker on its row):
+  adding or reviewing a word in that language, or a kana / hangul drill,
+  checks it off for today automatically.
 - **Language learning** — a vocabulary deck with Leitner-box spaced
   repetition: a right answer moves a word up one box and its next review out
   to 1 / 3 / 7 / 14 / 30 / 90 days, a miss drops it back to box 0 and due
@@ -113,6 +116,9 @@ The dashboard has eight in-plugin pages — nothing opens a markdown tab.
   table of word, meaning, example, level and date, under *Note/词汇表* by
   default), rewritten whenever the deck changes — searchable and linkable
   like any note, but edited from the dashboard, not in place.
+  Starting a review or a script drill also starts a pomodoro on the habit
+  linked to that language, if the timer is idle (*Settings → Language
+  learning → Auto-start a pomodoro when studying*).
 - **Focus timer** — countdown, count-up and pomodoro modes, drawn either as the canvas
   dial or as flip-clock digits with a progress bar. Runs in the plugin, so it
   keeps going when the tab is closed, and banks every whole minute so a crash
