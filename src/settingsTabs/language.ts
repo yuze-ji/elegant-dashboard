@@ -41,6 +41,20 @@ export function renderLanguageSettings(tab: DashboardSettingTab, containerEl: HT
     );
 
   new Setting(containerEl)
+    .setName(cn ? "学习时自动开始番茄钟" : "Auto-start a pomodoro when studying")
+    .setDesc(
+      cn
+        ? "开始复习单词或文字测验时，若计时器空闲且有习惯关联了该语言，就以该习惯为任务开始番茄钟"
+        : "Starting a word review or script drill starts a pomodoro on the habit linked to that language, if the timer is idle"
+    )
+    .addToggle((tg) =>
+      tg.setValue(tab.plugin.settings.languageAutoFocus).onChange(async (v) => {
+        tab.plugin.settings.languageAutoFocus = v;
+        await tab.plugin.saveSettings();
+      })
+    );
+
+  new Setting(containerEl)
     .setName(cn ? "词汇表文件夹" : "Vocabulary notes folder")
     .setDesc(cn ? "库内路径；不存在会自动创建" : "Vault path; created if missing")
     .addText((tx) => {

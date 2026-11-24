@@ -22,6 +22,8 @@ export interface Ctx {
   focus: {
     target: FocusTarget | null;
     running: boolean;
+    mode: "countdown" | "accumulate" | "pomodoro";
+    switchMode: (mode: "countdown" | "accumulate" | "pomodoro") => Promise<boolean>;
     setTarget: (t: FocusTarget | null) => Promise<void>;
     start: () => void;
     targetTotal: (t: { kind: string; id: string }) => number;
@@ -62,6 +64,24 @@ export function renderFocusPlay(
     ctx.refresh();
   };
   return btn;
+}
+
+/**
+ * Language-module study started: if the timer is idle and a habit is linked
+ * to one of `langs`, point a pomodoro at that habit and start it. A running
+ * timer is never hijacked — whatever you were focusing on keeps its time.
+ * No ctx.refresh(): the focus card follows the engine via onChange, and a
+ * re-render here would throw away the review session just begun.
+ */
+export async function autoFocusForStudy(ctx: Ctx, langs: string[]): Promise<void> {
+  const { settings, focus, t } = ctx;
+  if (!settings.languageAutoFocus || focus.running) return;
+  const habit = settings.habits.find((h) => h.linkedLang && langs.includes(h.linkedLang));
+  if (!habit) return;
+  if (focus.mode !== "pomodoro" && !(await focus.switchMode("pomodoro"))) return;
+  await focus.setTarget({ kind: "habit", id: habit.id, name: habit.name });
+  focus.start();
+  new Notice(`🍅 ${t.focusStartedOn(habit.name)}`, 3000);
 }
 
 export function card(parent: HTMLElement, title?: string): HTMLElement {

@@ -1,6 +1,6 @@
-import { Ctx, card } from "../ui";
+import { Ctx, autoFocusForStudy, card } from "../ui";
 import { MIXED_WITH, SCRIPTS, SCRIPT_IDS, ScriptChar, ScriptId, allChars } from "../scripts";
-import { Store, recordScriptAnswer } from "../mutations";
+import { SCRIPT_LANGS, Store, recordScriptAnswer } from "../mutations";
 import { SCRIPT_LANG, speak, speakButton } from "../speech";
 
 const storeOf = (ctx: Ctx): Store => ({ settings: ctx.settings, save: ctx.save });
@@ -197,6 +197,7 @@ export function renderScriptTest(parent: HTMLElement, ctx: Ctx) {
     start.onclick = () => {
       const items = shuffle(pool());
       if (items.length === 0) return;
+      void autoFocusForStudy(ctx, SCRIPT_LANGS[script] ?? []);
       drawQuiz(count > 0 ? items.slice(0, count) : items);
     };
   };

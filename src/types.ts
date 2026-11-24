@@ -327,6 +327,9 @@ export interface DashboardSettings {
   vocabLog: Record<string, VocabDayLog>;
   /** Mirror the deck into one note per language (see vocabNotes.ts). */
   vocabNotesEnabled: boolean;
+  /** Starting a review / drill in the Language module starts a pomodoro on
+   *  the habit linked to that language (if the timer is idle). */
+  languageAutoFocus: boolean;
   /** Vault folder those notes live in. */
   vocabNotesFolder: string;
   /** Kana / hangul drill record, keyed "<script>:<char>" (see scripts.ts). */
@@ -418,6 +421,7 @@ export const DEFAULT_SETTINGS: DashboardSettings = {
   vocabReviewPerDay: 20,
   vocabLog: {},
   vocabNotesEnabled: true,
+  languageAutoFocus: true,
   vocabNotesFolder: "Note/词汇表",
   scriptLog: {},
   taskTargetToday: 5,

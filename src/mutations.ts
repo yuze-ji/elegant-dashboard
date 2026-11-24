@@ -617,7 +617,7 @@ function markLinkedHabits(store: Store, langs: string[]): boolean {
 }
 
 /** Which language a kana / hangul drill counts towards, by common names. */
-const SCRIPT_LANGS: Record<string, string[]> = {
+export const SCRIPT_LANGS: Record<string, string[]> = {
   hiragana: ["日本語", "日语", "日文", "Japanese"],
   katakana: ["日本語", "日语", "日文", "Japanese"],
   hangul: ["한국어", "韩语", "韓國語", "Korean"],

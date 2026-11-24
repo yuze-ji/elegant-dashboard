@@ -1,6 +1,6 @@
 import { setIcon } from "obsidian";
 import { VOCAB_BOX_DAYS, VOCAB_MASTERED_BOX, VocabItem } from "../types";
-import { Ctx, HoverTooltip, card, empty, notifyUndo } from "../ui";
+import { Ctx, HoverTooltip, autoFocusForStudy, card, empty, notifyUndo } from "../ui";
 import { addDays, daysBetween, startOfDay, startOfIsoWeek, startOfMonth, toKey } from "../dates";
 import { VocabEditModal } from "../modals";
 import { runLookup } from "../lookup";
@@ -269,6 +269,7 @@ function renderReviewCard(parent: HTMLElement, ctx: Ctx) {
     if (!revealed) return;
     const item = queue.shift();
     if (!item) return;
+    void autoFocusForStudy(ctx, [item.lang]);
     forgot.disabled = true;
     knew.disabled = true;
     if (!(await reviewVocab(store, item.id, correct))) {
