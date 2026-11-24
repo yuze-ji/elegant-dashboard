@@ -1,11 +1,14 @@
 import { setIcon } from "obsidian";
 import { ProjectItem } from "../types";
-import { Ctx, card, empty, notifyUndo } from "../ui";
+import { Ctx, card, empty, notifyUndo, renderFocusPlay } from "../ui";
 import { ProjectDraft, ProjectEditModal } from "../modals";
+import { renderNoteButton } from "../noteLink";
+import { makeDraggable } from "../dnd";
 import {
   Store,
   addProject,
   deleteProject,
+  moveProject,
   restoreProject,
   updateProject,
 } from "../mutations";
@@ -14,7 +17,13 @@ const storeOf = (ctx: Ctx): Store => ({ settings: ctx.settings, save: ctx.save }
 
 // Exported for the Gantt chart, so a project's bar and its card badge always
 // agree on what "high priority" looks like.
-export const STATUS_ICON: Record<string, string> = {
+export /** 45 → "45m", 125 → "2h05m": compact enough for a chip. */
+function formatShort(mins: number): string {
+  if (mins < 60) return `${mins}m`;
+  return `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, "0")}m`;
+}
+
+const STATUS_ICON: Record<string, string> = {
   active: "▶",
   paused: "⏸",
   done: "✓",
@@ -27,7 +36,6 @@ export const PRIORITY_COLOR: Record<string, string> = {
   low: "#8A9BA3",
 };
 
-const PRIORITY_ORDER: Record<string, number> = { high: 3, medium: 2, low: 1 };
 
 export interface ProjectsOptions {
   /** Include finished projects — used by the dedicated Projects page. */
@@ -46,14 +54,12 @@ export function renderProjects(
   const cn = ctx.settings.lang !== "en";
   const root = card(parent, opts.showDone ? `🎯 ${t.allProjects}` : `🎯 ${t.projectsBoard}`);
 
+  // Stored order (drag to change) rather than priority order: the board is
+  // arranged by hand now, and a sort would undo every drag. `sort` is
+  // stable, so only finished projects move — to the bottom of the listing.
   const visible = projects
     .filter((p) => opts.showDone || p.status !== "done")
-    .sort((a, b) => {
-      // Finished projects sink to the bottom of the full listing.
-      const doneDelta = Number(a.status === "done") - Number(b.status === "done");
-      if (doneDelta !== 0) return doneDelta;
-      return (PRIORITY_ORDER[b.priority] || 0) - (PRIORITY_ORDER[a.priority] || 0);
-    });
+    .sort((a, b) => Number(a.status === "done") - Number(b.status === "done"));
 
   if (visible.length === 0) {
     empty(root, t.noProjects);
@@ -72,7 +78,14 @@ export function renderProjects(
   addBtn.onclick = () => {
     new ProjectEditModal(ctx.app, ctx.settings.lang, {
       title: { cn: "新增项目", en: "New project" },
-      initial: { name: "", status: "active", priority: "medium", progress: 0, dueDate: null },
+      initial: {
+        name: "",
+        status: "active",
+        priority: "medium",
+        progress: 0,
+        dueDate: null,
+        note: null,
+      },
       onSubmit: async (draft: ProjectDraft) => {
         if (await addProject(storeOf(ctx), draft)) ctx.refresh();
       },
@@ -89,9 +102,20 @@ function renderProjectCard(
   const cn = ctx.settings.lang !== "en";
   const cardEl = grid.createDiv({ cls: "ed-project-card" });
   if (p.status === "done") cardEl.addClass("is-done");
+  if (!readOnly) {
+    makeDraggable(cardEl, p.id, "projects", "x", async (dragged, after) => {
+      if (await moveProject(storeOf(ctx), dragged, p.id, after)) ctx.refresh();
+    });
+  }
 
   const header = cardEl.createDiv({ cls: "ed-project-header" });
   header.createDiv({ cls: "ed-project-name", text: p.name });
+  // Always visible (not hover-only like the pencil): it's the way *into*
+  // the project's page, on the overview too.
+  renderNoteButton(header, ctx.app, ctx.settings.lang, p.note);
+  if (p.status !== "done") {
+    renderFocusPlay(header, ctx, ctx.focus, { kind: "project", id: p.id, name: p.name });
+  }
 
   if (readOnly) {
     renderProjectBody(cardEl, p, false, ctx, readOnly);
@@ -110,6 +134,7 @@ function renderProjectCard(
         priority: p.priority,
         progress: p.progress,
         dueDate: p.dueDate,
+        note: p.note,
       },
       onSubmit: async (draft) => {
         if (await updateProject(storeOf(ctx), p, draft)) ctx.refresh();
@@ -148,6 +173,14 @@ function renderProjectBody(
     cls: "ed-project-status",
     text: `${STATUS_ICON[p.status] || "⚪"} ${p.status}`,
   });
+  const focused = ctx.focus.targetTotal({ kind: "project", id: p.id });
+  if (focused > 0) {
+    meta.createSpan({
+      cls: "ed-project-focus",
+      text: `⏱ ${formatShort(focused)}`,
+      title: ctx.t.focusTargetTotal(focused),
+    });
+  }
 
   const barWrap = cardEl.createDiv({ cls: "ed-progress" });
   const track = barWrap.createDiv({ cls: "ed-progress-track" });

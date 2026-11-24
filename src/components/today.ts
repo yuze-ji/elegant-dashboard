@@ -1,7 +1,7 @@
 import { TaskBuckets } from "../types";
 import { Ctx, card, empty } from "../ui";
 import { daysBetween, startOfDay, toKey } from "../dates";
-import { badgeText, urgencyOf } from "./deadlines";
+import { badgeText, compareTime, urgencyOf } from "./deadlines";
 
 /**
  * A compact "what's on today" summary, meant to sit next to the clock rather
@@ -18,19 +18,32 @@ export function renderTodayOverview(parent: HTMLElement, ctx: Ctx, buckets: Task
   const list = root.createDiv({ cls: "ed-today-list" });
   let rows = 0;
 
-  const nextDeadline = [...settings.deadlines]
-    .map((d) => ({ item: d, days: daysBetween(today, new Date(d.date + "T00:00:00")) }))
+  const openDeadlines = settings.deadlines
+    .filter((d) => !d.done)
+    .map((d) => ({ item: d, days: daysBetween(today, new Date(d.date + "T00:00:00")) }));
+  const nextDeadline = openDeadlines
     .filter((x) => x.days >= 0)
-    .sort((a, b) => a.days - b.days)[0];
+    .sort((a, b) => a.days - b.days || compareTime(a.item, b.item))[0];
   if (nextDeadline) {
     const row = list.createDiv({ cls: "ed-today-row" });
     row.createSpan({ cls: "ed-today-icon", text: "⏳" });
     row.createSpan({ cls: "ed-today-text", text: nextDeadline.item.title });
     const badge = row.createSpan({
       cls: "ed-today-badge",
-      text: badgeText(nextDeadline.days, t),
+      text: badgeText(nextDeadline.days, t, nextDeadline.item.time),
     });
     badge.dataset.urgency = urgencyOf(nextDeadline.days);
+    rows++;
+  }
+
+  // Past due and never checked off: the reminder engine deliberately stays
+  // quiet about these (see checkDeadlineReminders), so this is the one place
+  // they are surfaced — a count, not a list, nudging towards "done or delete".
+  const overdue = openDeadlines.filter((x) => x.days < 0).length;
+  if (overdue > 0) {
+    const row = list.createDiv({ cls: "ed-today-row is-overdue" });
+    row.createSpan({ cls: "ed-today-icon", text: "⚠️" });
+    row.createSpan({ cls: "ed-today-text", text: t.todayDeadlinesOverdue(overdue) });
     rows++;
   }
 

@@ -1,7 +1,7 @@
 import { setIcon } from "obsidian";
 import { HabitItem } from "../types";
 import { Ctx, HoverTooltip, card, notifyUndo } from "../ui";
-import { STEP } from "./activity";
+import { placeMonthLabels } from "./activity";
 import {
   addDays,
   isoWeekday,
@@ -141,6 +141,10 @@ function renderHabitRow(list: HTMLElement, ctx: Ctx, store: Store, habit: HabitI
         void toggleHabitDay(store, habit.id, key).then((ok) => ok && ctx.refresh());
     }
   }
+  // Today is the rightmost dot and the strip now scrolls instead of
+  // squeezing dots on a narrow card — land on today by default so a narrow
+  // card doesn't hide the one dot that's actually clickable.
+  strip.scrollLeft = strip.scrollWidth;
 }
 
 /** Name, streak/progress, target picker and delete — shared by the compact
@@ -168,6 +172,7 @@ function renderHabitHeader(head: HTMLElement, ctx: Ctx, store: Store, habit: Hab
   }
 
   renderTargetSelect(head, ctx, store, habit);
+  renderReminderInput(head, ctx, store, habit);
 
   const del = head.createEl("button", { cls: "ed-icon-btn ed-habit-del" });
   setIcon(del, "trash-2");
@@ -266,12 +271,29 @@ function renderHabitHeatmap(parent: HTMLElement, ctx: Ctx, store: Store, habit: 
           cls: "ed-month-label",
           text: t.monthNames[day.getMonth()],
         });
-        label.style.left = `${weekIndex * STEP}px`;
+        label.dataset.week = String(weekIndex);
       }
     }
     cursor = addDays(cursor, 7);
     weekIndex++;
   }
+  placeMonthLabels(monthsRow, gridEl);
+}
+
+/** Per-habit reminder time; empty = fall back to the global daily reminder. */
+function renderReminderInput(parent: HTMLElement, ctx: Ctx, store: Store, habit: HabitItem) {
+  const { t } = ctx;
+  const input = parent.createEl("input", { cls: "ed-habit-remind", type: "time" });
+  input.value = habit.reminderTime ?? "";
+  input.setAttr("aria-label", t.habitReminderTime);
+  input.setAttr("title", t.habitReminderTime);
+  input.onchange = async () => {
+    if (!(await updateHabit(store, habit.id, { reminderTime: input.value || null }))) {
+      input.value = habit.reminderTime ?? "";
+      return;
+    }
+    ctx.refresh();
+  };
 }
 
 function renderTargetSelect(parent: HTMLElement, ctx: Ctx, store: Store, habit: HabitItem) {

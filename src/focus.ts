@@ -1,10 +1,11 @@
 import { Notice } from "obsidian";
-import { DashboardSettings } from "./types";
+import { DashboardSettings, FocusTarget, focusTargetKey } from "./types";
 import { addDays, startOfDay, toKey } from "./dates";
 import { Strings } from "./i18n";
 import { Ticker } from "./ticker";
 
-export type FocusMode = "countdown" | "accumulate";
+export type FocusMode = "countdown" | "accumulate" | "pomodoro";
+export type PomodoroPhase = "work" | "short" | "long";
 
 /**
  * Owns the focus-timer state. Lives on the plugin (not the view) so the timer
@@ -19,6 +20,12 @@ export class FocusEngine {
   remaining: number;
   /** Seconds elapsed in accumulate mode. */
   elapsed = 0;
+  /** Pomodoro: which phase is on the clock, and how many work rounds of the
+   *  current cycle are done (0..rounds). Breaks never bank focus minutes. */
+  phase: PomodoroPhase = "work";
+  round = 0;
+  /** Length of the current pomodoro phase, for the progress ring. */
+  private phaseSeconds = 0;
   /** Seconds counted but not yet written to the focus log. */
   private unsaved = 0;
   /** Calendar day (YYYY-MM-DD) that `unsaved` should be banked under. */
@@ -42,6 +49,36 @@ export class FocusEngine {
   ) {
     this.targetSeconds = Math.max(60, settings.focusDefaultMinutes * 60);
     this.remaining = this.targetSeconds;
+  }
+
+  /** The task / project this session's minutes are attributed to, if any. */
+  get target(): FocusTarget | null {
+    return this.settings.focusTarget;
+  }
+
+  /**
+   * Re-points the attribution. Allowed mid-session: whole minutes already
+   * banked stay where they were, the pending remainder is flushed to the
+   * old target first so nothing earned on one thing lands on another.
+   */
+  async setTarget(target: FocusTarget | null): Promise<void> {
+    const same =
+      (target === null && this.settings.focusTarget === null) ||
+      (target !== null &&
+        this.settings.focusTarget !== null &&
+        focusTargetKey(target) === focusTargetKey(this.settings.focusTarget));
+    if (same) return;
+    await this.flush();
+    this.settings.focusTarget = target;
+    await this.save();
+    this.emit();
+  }
+
+  /** Minutes ever attributed to a task / project. */
+  targetTotal(target: { kind: string; id: string }): number {
+    const entry = this.settings.focusTargets[focusTargetKey(target)];
+    if (!entry) return 0;
+    return Object.values(entry.log).reduce((s, v) => s + v, 0);
   }
 
   /**
@@ -69,11 +106,70 @@ export class FocusEngine {
       if (this.targetSeconds <= 0) return 0;
       return (this.targetSeconds - this.remaining) / this.targetSeconds;
     }
+    if (this.mode === "pomodoro") {
+      if (this.phaseSeconds <= 0) return 0;
+      return (this.phaseSeconds - this.remaining) / this.phaseSeconds;
+    }
     return this.targetSeconds > 0 ? Math.min(this.elapsed / this.targetSeconds, 1) : 0;
   }
 
   get displaySeconds(): number {
-    return this.mode === "countdown" ? this.remaining : this.elapsed;
+    return this.mode === "accumulate" ? this.elapsed : this.remaining;
+  }
+
+  private lengthOf(phase: PomodoroPhase): number {
+    const s = this.settings;
+    const mins =
+      phase === "work" ? s.pomodoroWork : phase === "short" ? s.pomodoroShort : s.pomodoroLong;
+    return Math.max(60, Math.round(mins) * 60);
+  }
+
+  /** Puts `phase` on the clock (not started). */
+  private loadPhase(phase: PomodoroPhase) {
+    this.phase = phase;
+    this.phaseSeconds = this.lengthOf(phase);
+    this.remaining = this.phaseSeconds;
+  }
+
+  /**
+   * Work → short break, or a long one after `pomodoroRounds` work rounds;
+   * any break → the next work round. Banks the pending seconds first, so a
+   * work phase's last minute lands before the break starts. Returns the
+   * notice to show.
+   */
+  private async advancePhase(): Promise<string> {
+    await this.flush();
+    const t = this.strings();
+    const s = this.settings;
+    let notice: string;
+    if (this.phase === "work") {
+      this.round += 1;
+      if (this.round >= s.pomodoroRounds) {
+        this.loadPhase("long");
+        notice = t.pomodoroCycleDone(this.round, s.pomodoroLong);
+        this.round = 0;
+      } else {
+        this.loadPhase("short");
+        notice = t.pomodoroWorkDone(s.pomodoroShort);
+      }
+    } else {
+      this.loadPhase("work");
+      notice = t.pomodoroBreakDone(this.round + 1, s.pomodoroRounds);
+    }
+    this.sessionMinutes = 0;
+    return notice;
+  }
+
+  /** Skips the rest of the current pomodoro phase (work minutes so far are kept). */
+  async skipPhase() {
+    if (this.mode !== "pomodoro") return;
+    const wasRunning = this.running;
+    this.stopInterval();
+    this.running = false;
+    const notice = await this.advancePhase();
+    new Notice(notice, 6000);
+    if (wasRunning && this.settings.pomodoroAutoStart) this.start();
+    else this.emit();
   }
 
   todayMinutes(): number {
@@ -98,6 +194,28 @@ export class FocusEngine {
     this.unsaved -= minutes * 60;
     const key = this.unsavedDayKey;
     this.settings.focusLog[key] = (this.settings.focusLog[key] || 0) + minutes;
+    const target = this.settings.focusTarget;
+    if (target) {
+      const tk = focusTargetKey(target);
+      const entry = (this.settings.focusTargets[tk] ??= {
+        kind: target.kind,
+        id: target.id,
+        name: target.name,
+        log: {},
+      });
+      entry.name = target.name;
+      entry.log[key] = (entry.log[key] || 0) + minutes;
+      // Focusing on a habit for a full pomodoro's worth (pomodoroWork minutes,
+      // accumulated over the day) counts as doing it: check it off
+      // automatically (only ever sets, never un-checks a manual tick).
+      if (
+        target.kind === "habit" &&
+        entry.log[key] >= Math.max(1, this.settings.pomodoroWork) &&
+        this.settings.habits.some((h) => h.id === target.id)
+      ) {
+        (this.settings.habitLog[target.id] ??= {})[key] = true;
+      }
+    }
     this.sessionMinutes += minutes;
     await this.save();
     // Notify subscribers so the stats and the trend chart pick up the new total.
@@ -136,10 +254,17 @@ export class FocusEngine {
 
     // The countdown / count-up display doesn't care which calendar day the
     // seconds fall on, so it advances by the full delta in one shot.
-    if (this.mode === "countdown") {
-      this.remaining = Math.max(0, this.remaining - deltaSeconds);
-    } else {
+    if (this.mode === "accumulate") {
       this.elapsed += deltaSeconds;
+    } else {
+      this.remaining = Math.max(0, this.remaining - deltaSeconds);
+    }
+
+    // A pomodoro break is rest, not focus: the clock runs, the log doesn't.
+    if (this.mode === "pomodoro" && this.phase !== "work") {
+      if (this.remaining <= 0) await this.endPhase();
+      this.emit();
+      return;
     }
 
     // The *log*, on the other hand, must not dump a whole session (or a big
@@ -177,8 +302,18 @@ export class FocusEngine {
       new Notice(this.strings().focusDone(this.sessionMinutes));
       this.sessionMinutes = 0;
     }
+    if (this.mode === "pomodoro" && this.remaining <= 0) await this.endPhase();
 
     this.emit();
+  }
+
+  /** A pomodoro phase ran out: announce, move on, and keep going if auto-start is on. */
+  private async endPhase() {
+    this.stopInterval();
+    this.running = false;
+    const notice = await this.advancePhase();
+    new Notice(notice, 8000);
+    if (this.settings.pomodoroAutoStart) this.start();
   }
 
   private stopInterval() {
@@ -206,6 +341,10 @@ export class FocusEngine {
     this.unsaved = 0;
     this.unsavedDayKey = toKey(new Date());
     this.sessionMinutes = 0;
+    if (this.mode === "pomodoro") {
+      this.round = 0;
+      this.loadPhase("work");
+    }
     if (wasAccumulate && banked > 0) {
       new Notice(this.strings().focusSaved(banked));
     }
@@ -224,6 +363,10 @@ export class FocusEngine {
     this.unsaved = 0;
     this.unsavedDayKey = toKey(new Date());
     this.sessionMinutes = 0;
+    if (mode === "pomodoro") {
+      this.round = 0;
+      this.loadPhase("work");
+    }
     this.emit();
     return true;
   }

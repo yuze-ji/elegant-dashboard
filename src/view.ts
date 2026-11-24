@@ -1,13 +1,24 @@
 import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import type DashboardPlugin from "./main";
 import { Ctx } from "./ui";
-import { COMPACT_MODULES, MODULE_ORDER, ModuleId, SIDEBAR_MODULES } from "./types";
-import { BUNDLED_BACKGROUND } from "./settings";
+import {
+  BENTO_LAYOUT,
+  COMPACT_MODULES,
+  MODULE_ORDER,
+  ModuleId,
+  SIDEBAR_MODULES,
+} from "./types";
+import { BUNDLED_BACKGROUND, GRADIENT_BACKGROUND } from "./settings";
 import { renderActivity } from "./components/activity";
 import { renderClock } from "./components/clock";
 import { renderDeadlineCalendar, renderDeadlines } from "./components/deadlines";
 import { renderHabits, renderHabitsPage } from "./components/habits";
+import { renderLanguage, renderLanguagePage } from "./components/language";
 import { renderTodayOverview } from "./components/today";
+import { renderAgenda } from "./components/agenda";
+import { renderHomeHeader } from "./components/home";
+import { renderLinks, renderLinksPage } from "./components/links";
+import { renderCustomPanels } from "./components/custom";
 import { renderFocusTimer } from "./components/focusTimer";
 import { renderProjects } from "./components/projects";
 import { renderGantt } from "./components/gantt";
@@ -20,7 +31,15 @@ import { renderFocusHistory } from "./components/focusHistory";
 
 export const VIEW_TYPE_DASHBOARD = "elegant-dashboard-view";
 
-type Page = "dashboard" | "projects" | "tasks" | "deadlines" | "habits" | "focus";
+type Page =
+  | "dashboard"
+  | "projects"
+  | "tasks"
+  | "deadlines"
+  | "habits"
+  | "language"
+  | "focus"
+  | "links";
 
 export class DashboardView extends ItemView {
   private cleanups: Array<() => void> = [];
@@ -99,6 +118,11 @@ export class DashboardView extends ItemView {
       save: () => this.plugin.saveSettings(),
       refresh: () => void this.render(),
       onCleanup: (fn) => this.cleanups.push(fn),
+      focus: this.plugin.focus,
+      navigate: (page) => {
+        this.page = page;
+        void this.render();
+      },
     };
 
     container.style.setProperty("--ed-card-alpha", String(settings.cardOpacity));
@@ -107,7 +131,9 @@ export class DashboardView extends ItemView {
     this.applyBackground(container);
 
     const scroll = container.createDiv({ cls: "ed-scroll-root" });
-    this.renderNavbar(scroll, ctx);
+    // On the home layout the navbar is drawn inside the sheet (see below).
+    const homeSheet = this.page === "dashboard" && settings.overviewLayout === "home";
+    if (!homeSheet) this.renderNavbar(scroll, ctx);
     const grid = scroll.createDiv({ cls: "ed-modules" });
 
     const loading = grid.createDiv({ cls: "ed-loading", text: "…" });
@@ -146,9 +172,13 @@ export class DashboardView extends ItemView {
       guard("deadlines", () => renderDeadlineCalendar(grid, ctx));
     } else if (this.page === "habits") {
       guard("habits", () => renderHabitsPage(grid, ctx));
+    } else if (this.page === "language") {
+      guard("language", () => renderLanguagePage(grid, ctx));
     } else if (this.page === "focus") {
       guard("focus", () => renderFocusTimer(grid, ctx, this.plugin.focus));
       guard("focusHistory", () => renderFocusHistory(grid, ctx, this.plugin.focus));
+    } else if (this.page === "links") {
+      guard("links", () => renderLinksPage(grid, ctx));
     } else {
       // Each renderer takes its own parent now instead of being bound to
       // `grid` directly, so the loop below can hand it either `grid` (a
@@ -156,9 +186,13 @@ export class DashboardView extends ItemView {
       const renderers: Record<ModuleId, (parent: HTMLElement) => void> = {
         clock: (p) => renderClock(p, ctx, this.plugin.alarms),
         today: (p) => renderTodayOverview(p, ctx, buckets),
+        agenda: (p) => renderAgenda(p, ctx, tasks),
+        links: (p) => renderLinks(p, ctx),
+        custom: (p) => renderCustomPanels(p, ctx),
         deadlines: (p) => renderDeadlines(p, ctx),
         activity: (p) => renderActivity(p, ctx, activity),
         habits: (p) => renderHabits(p, ctx),
+        language: (p) => renderLanguage(p, ctx),
         focus: (p) => renderFocusTimer(p, ctx, this.plugin.focus),
         // The overview is a report: editing lives on the Projects / Tasks pages.
         projects: (p) => renderProjects(p, ctx, projects, { readOnly: true }),
@@ -170,6 +204,54 @@ export class DashboardView extends ItemView {
         charts: (p) => renderTrends(p, ctx, vaultStats, months),
       };
 
+      // Where the module rows land: the page itself, or — on the home
+      // layout — the inside of the sheet, under its header.
+      let host: HTMLElement = grid;
+      if (settings.overviewLayout === "home") {
+        scroll.addClass("is-home");
+        const sheet = grid.createDiv({ cls: "ed-home" });
+        const banner = settings.homeBanner.trim();
+        const avatarRaw = settings.homeAvatar.trim();
+        const looksLikeImage = (s: string) =>
+          /^(https?:|app:|data:)/i.test(s) || /\.(png|jpe?g|gif|webp|svg)$/i.test(s);
+        guard("home", () =>
+          renderHomeHeader(
+            sheet,
+            ctx,
+            {
+              buckets,
+              counts,
+              banner:
+                banner === "" || banner === BUNDLED_BACKGROUND
+                  ? { kind: "bundled" }
+                  : banner === "@gradient"
+                    ? { kind: "gradient" }
+                    : { kind: "image", url: `url("${this.resolveBackgroundUrl(banner)}")` },
+              avatarUrl: looksLikeImage(avatarRaw) ? this.resolveBackgroundUrl(avatarRaw) : null,
+            },
+            (parent) => this.renderNavbar(parent, ctx)
+          )
+        );
+        host = sheet.createDiv({ cls: "ed-home-modules" });
+      }
+
+      if (settings.overviewLayout === "grid") {
+        // One-screen bento: the scroll root stops scrolling and becomes a
+        // column (navbar + grid), the grid fills what's left, and each cell
+        // scrolls on its own. Placement comes from BENTO_LAYOUT, not
+        // MODULE_ORDER, because here the shape of the page is the point.
+        scroll.addClass("is-bento");
+        grid.addClass("is-bento");
+        for (const [id, span] of BENTO_LAYOUT) {
+          if (!settings.modules[id]) continue;
+          const cell = host.createDiv({ cls: "ed-bento-cell" });
+          cell.dataset.span = String(span);
+          cell.dataset.module = id;
+          guard(id, () => renderers[id](cell));
+        }
+        return;
+      }
+
       // Consecutive enabled COMPACT_MODULES share one responsive grid row;
       // anything else (a heatmap, three columns of tasks, a chart with its
       // own internal columns) gets the full card width. Grouping by position
@@ -178,7 +260,7 @@ export class DashboardView extends ItemView {
       let pendingCompact: ModuleId[] = [];
       const flushCompact = () => {
         if (pendingCompact.length === 0) return;
-        const row = grid.createDiv({ cls: "ed-compact-grid" });
+        const row = host.createDiv({ cls: "ed-compact-grid" });
         for (const id of pendingCompact) guard(id, () => renderers[id](row));
         pendingCompact = [];
       };
@@ -197,13 +279,15 @@ export class DashboardView extends ItemView {
 
       for (const id of MODULE_ORDER) {
         if (!settings.modules[id]) continue;
+        // The KPI tiles up top already carry the Today card's three facts.
+        if (settings.overviewLayout === "home" && id === "today") continue;
         if (COMPACT_MODULES.includes(id)) {
           pendingCompact.push(id);
         } else if (SIDEBAR_MODULES.includes(id)) {
           pendingSidebar.push(id);
         } else if (id === "charts" && pendingSidebar.length > 0) {
           flushCompact();
-          const row = grid.createDiv({ cls: "ed-charts-row" });
+          const row = host.createDiv({ cls: "ed-charts-row" });
           // Sidebar is *appended* first — even though it *displays* second,
           // via CSS `order` — so its real height is already in the DOM
           // before Charts measures how tall it can draw itself. Charts'
@@ -216,7 +300,7 @@ export class DashboardView extends ItemView {
           guard(id, () => renderers[id](main));
         } else {
           flushCompact();
-          guard(id, () => renderers[id](grid));
+          guard(id, () => renderers[id](host));
         }
       }
       flushCompact();
@@ -224,7 +308,7 @@ export class DashboardView extends ItemView {
       // it but keeps Recent/Stats) — fall back to the ordinary compact row
       // rather than dropping them.
       if (pendingSidebar.length > 0) {
-        const row = grid.createDiv({ cls: "ed-compact-grid" });
+        const row = host.createDiv({ cls: "ed-compact-grid" });
         for (const id of pendingSidebar) guard(id, () => renderers[id](row));
       }
     }
@@ -241,7 +325,9 @@ export class DashboardView extends ItemView {
     }
     container.addClass("has-bg");
     const bg = container.createDiv({ cls: "ed-bg" });
-    if (raw === BUNDLED_BACKGROUND) {
+    if (raw === GRADIENT_BACKGROUND) {
+      bg.addClass("ed-bg-gradient");
+    } else if (raw === BUNDLED_BACKGROUND) {
       // Baked into styles.css as a data URI instead of shipped as a loose
       // background.jpg: Obsidian's Community Plugins installer only ever
       // fetches main.js/manifest.json/styles.css from a release, so a
@@ -252,6 +338,13 @@ export class DashboardView extends ItemView {
       bg.style.backgroundImage = `url("${this.resolveBackgroundUrl(raw)}")`;
     }
     bg.style.opacity = String(this.plugin.settings.backgroundOpacity);
+    // Blur bleeds transparent at the edges; oversize the layer by the blur
+    // radius so the fade stays off-screen.
+    const blur = Math.max(0, this.plugin.settings.backgroundBlur);
+    if (blur > 0) {
+      bg.style.filter = `blur(${blur}px)`;
+      bg.style.inset = `-${blur * 2}px`;
+    }
   }
 
   /**
@@ -288,7 +381,9 @@ export class DashboardView extends ItemView {
     mkPage("tasks", `✅ ${t.tasks}`);
     mkPage("deadlines", `⏳ ${t.deadlines}`);
     mkPage("habits", `🔥 ${t.habits}`);
+    mkPage("language", `🌍 ${t.language}`);
     mkPage("focus", `⏱️ ${t.focus}`);
+    mkPage("links", `🔗 ${t.homeLinks}`);
 
     const right = nav.createDiv({ cls: "ed-nav-right" });
 

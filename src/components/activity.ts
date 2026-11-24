@@ -21,6 +21,40 @@ type ViewMode = "week" | "month" | "year";
 export const CELL = 20;
 export const GAP = 5;
 export const STEP = CELL + GAP;
+
+/**
+ * Horizontal pitch of one week column as actually laid out — the CSS can
+ * shrink the pills (the bento Overview does), so month labels must follow
+ * the rendered size rather than the nominal STEP.
+ */
+export function measureStep(gridEl: HTMLElement): number {
+  const first = gridEl.firstElementChild as HTMLElement | null;
+  if (!first) return STEP;
+  const w = first.getBoundingClientRect().width;
+  const gap = parseFloat(getComputedStyle(gridEl).columnGap) || GAP;
+  const step = w + gap;
+  // A column measured at hundreds of px means the stylesheet hasn't applied
+  // yet (a plugin reload races it) — fall back to the nominal pitch.
+  return step >= 6 && step <= 60 ? step : STEP;
+}
+
+/**
+ * Positions `.ed-month-label` spans (tagged with data-week) along the grid.
+ * Runs now and again next frame, so a render that beat the stylesheet (or a
+ * container-query change) still ends up with labels on the right columns.
+ */
+export function placeMonthLabels(monthsRow: HTMLElement, gridEl: HTMLElement) {
+  const place = () => {
+    const step = measureStep(gridEl);
+    monthsRow.querySelectorAll<HTMLElement>(".ed-month-label").forEach((label) => {
+      label.style.left = `${Number(label.dataset.week ?? 0) * step}px`;
+    });
+  };
+  place();
+  window.requestAnimationFrame(() => {
+    if (gridEl.isConnected) place();
+  });
+}
 // The month strip is already offset by the weekday gutter via CSS margin-left,
 // so month labels position from 0 relative to the grid.
 
@@ -176,12 +210,13 @@ export function renderActivity(parent: HTMLElement, ctx: Ctx, activity: Activity
             cls: "ed-month-label",
             text: t.monthNames[day.getMonth()],
           });
-          label.style.left = `${weekIndex * STEP}px`;
+          label.dataset.week = String(weekIndex);
         }
       }
       cursor = addDays(cursor, 7);
       weekIndex++;
     }
+    placeMonthLabels(monthsRow, gridEl);
 
     renderBadges(body, eachDay(start, today));
   };

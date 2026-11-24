@@ -7,7 +7,7 @@ import {
   TaskItem,
   VaultStats,
 } from "./types";
-import { addMonths, monthKey, toKey, startOfIsoWeek, startOfMonth } from "./dates";
+import { addMonths, monthKey, toKey, startOfIsoWeek, startOfMonth, daysBetween } from "./dates";
 
 const CJK_RE = /[㐀-䶿一-鿿豈-﫿぀-ヿ가-힯]/g;
 
@@ -77,6 +77,7 @@ export class DataService {
       progress: Math.max(0, Math.min(100, Number(p.progress) || 0)),
       createdAt: p.createdAt,
       dueDate: p.dueDate,
+      note: p.note ?? null,
       id: p.id,
     }));
   }
@@ -94,16 +95,24 @@ export class DataService {
       doneDate: s.doneDate,
       dueDate: s.dueDate,
       section: s.section,
+      note: s.note ?? null,
+      repeat: s.repeat ?? "none",
+      repeatDays: s.repeatDays ?? [],
+      notes: s.notes ?? "",
+      deadlineId: s.deadlineId ?? null,
       id: s.id,
     }));
   }
 
   bucketTasks(tasks: TaskItem[]): TaskBuckets {
     const todayStr = toKey(new Date());
-    const buckets: TaskBuckets = { today: [], todo: [], done: [] };
+    const buckets: TaskBuckets = { today: [], todo: [], done: [], archived: [] };
+    const hideAfter = this.settings.doneHideAfterDays;
     for (const t of tasks) {
       if (t.done) {
-        buckets.done.push(t);
+        const age = t.doneDate ? daysBetween(new Date(t.doneDate + "T00:00:00"), new Date()) : 0;
+        if (hideAfter > 0 && age >= hideAfter) buckets.archived.push(t);
+        else buckets.done.push(t);
         continue;
       }
       const dueToday = t.dueDate !== null && t.dueDate <= todayStr;
@@ -119,7 +128,10 @@ export class DataService {
       });
     sort(buckets.today);
     sort(buckets.todo);
-    buckets.done.sort((a, b) => (b.doneDate || "").localeCompare(a.doneDate || ""));
+    const byDoneDesc = (a: TaskItem, b: TaskItem) =>
+      (b.doneDate || "").localeCompare(a.doneDate || "");
+    buckets.done.sort(byDoneDesc);
+    buckets.archived.sort(byDoneDesc);
     return buckets;
   }
 

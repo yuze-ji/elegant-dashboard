@@ -139,6 +139,59 @@ export function renderFocusHistory(parent: HTMLElement, ctx: Ctx, engine: FocusE
       badge(row, `${t.bestDay} ${best} ${t.minuteUnit} (${d.getMonth() + 1}/${d.getDate()})`);
     }
     badge(row, `${t.streak} ${currentStreak(log)} ${t.daysUnit}`);
+
+    // ---- where it went: per task / project, within the same range
+    const inRange = new Set(dates);
+    const rows = Object.values(ctx.settings.focusTargets)
+      .map((entry) => ({
+        entry,
+        minutes: Object.entries(entry.log)
+          .filter(([d]) => inRange.has(d))
+          .reduce((s, [, v]) => s + v, 0),
+      }))
+      .filter((r) => r.minutes > 0)
+      .sort((a, b) => b.minutes - a.minutes);
+    const attributed = rows.reduce((s, r) => s + r.minutes, 0);
+    if (rows.length > 0) {
+      const wrap = body.createDiv({ cls: "ed-focus-breakdown" });
+      wrap.createDiv({ cls: "ed-focus-breakdown-title", text: t.focusBreakdown });
+      const max = rows[0].minutes;
+      for (const { entry, minutes } of rows.slice(0, 12)) {
+        const exists =
+          entry.kind === "task"
+            ? ctx.settings.storedTasks.some((x) => x.id === entry.id)
+            : entry.kind === "habit"
+              ? ctx.settings.habits.some((h) => h.id === entry.id)
+              : ctx.settings.storedProjects.some((p) => p.id === entry.id);
+        const line = wrap.createDiv({ cls: "ed-focus-breakdown-row" });
+        line.createSpan({
+          cls: "ed-focus-breakdown-kind",
+          text: entry.kind === "task" ? "✅" : entry.kind === "habit" ? "🔁" : "🎯",
+        });
+        const name = line.createSpan({
+          cls: "ed-focus-breakdown-name",
+          text: exists ? entry.name : `${entry.name} ${t.focusTargetGone}`,
+        });
+        name.setAttr("title", name.getText());
+        const bar = line.createDiv({ cls: "ed-focus-breakdown-bar" });
+        bar.createDiv({ cls: "ed-focus-breakdown-fill" }).style.width =
+          `${Math.max(3, Math.round((minutes / max) * 100))}%`;
+        line.createSpan({
+          cls: "ed-focus-breakdown-min",
+          text: formatMinutes(minutes, t.hoursUnit, t.minuteUnit),
+        });
+      }
+      if (total > attributed) {
+        const line = wrap.createDiv({ cls: "ed-focus-breakdown-row is-rest" });
+        line.createSpan({ cls: "ed-focus-breakdown-kind", text: "·" });
+        line.createSpan({ cls: "ed-focus-breakdown-name", text: t.focusUnattributed });
+        line.createDiv({ cls: "ed-focus-breakdown-bar" });
+        line.createSpan({
+          cls: "ed-focus-breakdown-min",
+          text: formatMinutes(total - attributed, t.hoursUnit, t.minuteUnit),
+        });
+      }
+    }
   };
 
   draw();

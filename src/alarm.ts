@@ -79,6 +79,28 @@ export function nextRingAt(alarm: AlarmItem, from: Date = new Date()): Date | nu
   return null;
 }
 
+/**
+ * The moment a daily "HH:MM" fell inside `(from, to]`, or null — the same
+ * range check `dueBetween` does for alarms, for things that are a time of
+ * day rather than an alarm. Invalid times never match.
+ */
+export function timeInWindow(raw: string, from: number, to: number): Date | null {
+  const time = normalizeTime(raw);
+  if (!time) return null;
+  const [h, m] = time.split(":").map(Number);
+  const candidates = new Set<number>();
+  for (const base of [new Date(from), new Date(to)]) {
+    const d = new Date(base);
+    d.setHours(h, m, 0, 0);
+    candidates.add(d.getTime());
+  }
+  for (const ts of [...candidates].sort((a, b) => a - b)) {
+    if (ts <= from || ts > to) continue;
+    return new Date(ts);
+  }
+  return null;
+}
+
 /** Repeating two-tone chirp, built on WebAudio so no asset ships with the plugin. */
 class AlarmTone {
   private ctx: AudioContext | null = null;
@@ -300,17 +322,37 @@ export class AlarmEngine {
    * instead of never, the same trade-off `dueBetween`'s catch-up window makes
    * for alarms. `overdue` deadlines (days < 0) are excluded: reminding about
    * something already past due is a different feature than this one.
+   *
+   * Minute-based reminders (for deadlines with a time of day) follow the same
+   * "at or after, never past the event" rule: they fire once `now` is inside
+   * `[event - offset, event)`, so a late tick still lands while the event is
+   * ahead, and never after it has already started.
    */
   private async checkDeadlineReminders() {
     const today = startOfDay(new Date());
+    const now = Date.now();
     let changed = false;
+    const t = this.strings();
     for (const d of this.settings.deadlines) {
-      if (d.remindDaysBefore == null || d.reminded) continue;
+      if (d.done || d.reminded) continue;
+
+      if (d.remindMinutesBefore != null) {
+        if (!d.time) continue;
+        const at = new Date(`${d.date}T${d.time}:00`).getTime();
+        if (Number.isNaN(at)) continue;
+        if (now < at - d.remindMinutesBefore * 60_000 || now >= at) continue;
+        d.reminded = true;
+        changed = true;
+        const minutesLeft = Math.max(1, Math.round((at - now) / 60_000));
+        new Notice(t.deadlineReminderTimeNotice(d.title, d.time, minutesLeft), 10_000);
+        continue;
+      }
+
+      if (d.remindDaysBefore == null) continue;
       const days = daysBetween(today, new Date(d.date + "T00:00:00"));
       if (days < 0 || days > d.remindDaysBefore) continue;
       d.reminded = true;
       changed = true;
-      const t = this.strings();
       new Notice(t.deadlineReminderNotice(d.title, days), 10_000);
     }
     if (changed) await this.save();
@@ -326,35 +368,41 @@ export class AlarmEngine {
    * to congratulate.
    */
   private async checkHabitReminder(from: number, to: number) {
-    if (!this.settings.habitReminderEnabled) return;
-    const time = normalizeTime(this.settings.habitReminderTime);
-    if (!time) return;
-    const [h, m] = time.split(":").map(Number);
+    let changed = false;
+    const t = this.strings();
+    const isDone = (id: string, dayKey: string) => !!this.settings.habitLog[id]?.[dayKey];
 
-    const candidates = new Set<number>();
-    for (const base of [new Date(from), new Date(to)]) {
-      const d = new Date(base);
-      d.setHours(h, m, 0, 0);
-      candidates.add(d.getTime());
+    // Per-habit times first: each is its own once-a-day reminder.
+    for (const h of this.settings.habits) {
+      if (!h.reminderTime) continue;
+      const due = timeInWindow(h.reminderTime, from, to);
+      if (!due) continue;
+      const dayKey = toKey(due);
+      if (this.settings.habitReminderFiredById[h.id] === dayKey) continue;
+      this.settings.habitReminderFiredById[h.id] = dayKey;
+      changed = true;
+      if (!isDone(h.id, dayKey)) new Notice(t.habitReminderNoticeOne(h.name), 10_000);
     }
-    let due: Date | null = null;
-    for (const ts of [...candidates].sort((a, b) => a - b)) {
-      if (ts <= from || ts > to) continue;
-      due = new Date(ts);
-      break;
+
+    // Then the global one, for habits without a time of their own.
+    if (this.settings.habitReminderEnabled) {
+      const due = timeInWindow(this.settings.habitReminderTime, from, to);
+      if (due) {
+        const todayKey = toKey(due);
+        if (this.settings.habitReminderFiredDate !== todayKey) {
+          this.settings.habitReminderFiredDate = todayKey;
+          changed = true;
+          const unchecked = this.settings.habits.filter(
+            (h) => !h.reminderTime && !isDone(h.id, todayKey)
+          );
+          if (unchecked.length > 0) {
+            new Notice(t.habitReminderNotice(unchecked.map((h) => h.name)), 10_000);
+          }
+        }
+      }
     }
-    if (!due) return;
 
-    const todayKey = toKey(due);
-    if (this.settings.habitReminderFiredDate === todayKey) return;
-    this.settings.habitReminderFiredDate = todayKey;
-
-    const unchecked = this.settings.habits.filter(
-      (h) => !this.settings.habitLog[h.id]?.[todayKey]
-    );
-    await this.save();
-    if (unchecked.length === 0) return;
-    new Notice(this.strings().habitReminderNotice(unchecked.map((h) => h.name)), 10_000);
+    if (changed) await this.save();
   }
 
   private ring(alarm: AlarmItem) {
