@@ -208,6 +208,10 @@ export interface HabitItem {
    *  global daily reminder (if that is on). A habit with its own time is
    *  left out of the global one, so nothing nags twice. */
   reminderTime: string | null;
+  /** One of `vocabLanguages`, or null. When set, any study in the Language
+   *  module for that language (adding or reviewing a word, or a kana /
+   *  hangul drill) checks this habit off for today automatically. */
+  linkedLang: string | null;
 }
 
 /**

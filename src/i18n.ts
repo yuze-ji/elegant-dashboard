@@ -141,6 +141,8 @@ export interface Strings {
   habitReminderNotice: (names: string[]) => string;
   habitReminderNoticeOne: (name: string) => string;
   habitReminderTime: string;
+  habitLinkedLang: string;
+  habitLinkedNone: string;
   agenda: string;
   agendaToday: string;
   agendaTomorrow: string;
@@ -454,6 +456,8 @@ export const I18N: Record<Lang, Strings> = {
     habitReminderNotice: (names) => `🔥 还没打卡：${names.join("、")}`,
     habitReminderNoticeOne: (name) => `🔥 该打卡了：${name}`,
     habitReminderTime: "单独提醒时间（可选）",
+    habitLinkedLang: "关联语言：在语言学习板块学习该语言时自动打卡",
+    habitLinkedNone: "不关联",
     agenda: "未来 7 天",
     agendaToday: "今天",
     agendaTomorrow: "明天",
@@ -775,6 +779,8 @@ export const I18N: Record<Lang, Strings> = {
     habitReminderNotice: (names) => `🔥 Not checked in yet: ${names.join(", ")}`,
     habitReminderNoticeOne: (name) => `🔥 Time for: ${name}`,
     habitReminderTime: "Own reminder time (optional)",
+    habitLinkedLang: "Linked language: studying it in Language learning checks this off",
+    habitLinkedNone: "No link",
     agenda: "Next 7 days",
     agendaToday: "today",
     agendaTomorrow: "tomorrow",

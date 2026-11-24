@@ -456,7 +456,7 @@ export async function restoreDeadline(
 export async function addHabit(store: Store, name: string): Promise<boolean> {
   const n = name.trim();
   if (!n) return false;
-  store.settings.habits.push({ id: newId(), name: n, targetPerWeek: null, reminderTime: null });
+  store.settings.habits.push({ id: newId(), name: n, targetPerWeek: null, reminderTime: null, linkedLang: null });
   await store.save();
   return true;
 }
@@ -474,6 +474,7 @@ export async function updateHabit(
     target.name = n;
   }
   if (patch.targetPerWeek !== undefined) target.targetPerWeek = patch.targetPerWeek;
+  if (patch.linkedLang !== undefined) target.linkedLang = patch.linkedLang || null;
   if (patch.reminderTime !== undefined) {
     if (patch.reminderTime === null || patch.reminderTime === "") {
       target.reminderTime = null;
@@ -595,6 +596,34 @@ export async function toggleHabitDay(
   return true;
 }
 
+/**
+ * Checks off today for every habit linked to one of `langs`. Only ever sets
+ * today — never clears it, never touches another day — so it stays within
+ * the same "honest record" rule as toggleHabitDay. Does not save; callers
+ * already do. Returns whether anything changed.
+ */
+function markLinkedHabits(store: Store, langs: string[]): boolean {
+  const today = toKey(new Date());
+  let changed = false;
+  for (const h of store.settings.habits) {
+    if (!h.linkedLang || !langs.includes(h.linkedLang)) continue;
+    const log = (store.settings.habitLog[h.id] ??= {});
+    if (!log[today]) {
+      log[today] = true;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+/** Which language a kana / hangul drill counts towards, by common names. */
+const SCRIPT_LANGS: Record<string, string[]> = {
+  hiragana: ["日本語", "日语", "日文", "Japanese"],
+  katakana: ["日本語", "日语", "日文", "Japanese"],
+  hangul: ["한국어", "韩语", "韓國語", "Korean"],
+  hangulSyllables: ["한국어", "韩语", "韓國語", "Korean"],
+};
+
 // ---------------------------------------------------------------- vocabulary
 
 export interface VocabDraft {
@@ -626,6 +655,7 @@ export async function addVocab(store: Store, draft: VocabDraft): Promise<boolean
     lapses: 0,
   });
   vocabDayLog(store, today).added++;
+  markLinkedHabits(store, [store.settings.vocab[store.settings.vocab.length - 1].lang]);
   store.settings.vocabLastLang = draft.lang.trim() || null;
   await store.save();
   return true;
@@ -695,6 +725,7 @@ export async function reviewVocab(store: Store, id: string, correct: boolean): P
     item.due = toKey(today);
   }
   vocabDayLog(store, toKey(today)).reviewed++;
+  markLinkedHabits(store, [item.lang]);
   await store.save();
   return true;
 }
@@ -704,6 +735,7 @@ export async function recordScriptAnswer(store: Store, key: string, correct: boo
   const rec = (store.settings.scriptLog[key] ??= { right: 0, wrong: 0 });
   if (correct) rec.right++;
   else rec.wrong++;
+  markLinkedHabits(store, SCRIPT_LANGS[key.split(":")[0]] ?? []);
   await store.save();
 }
 

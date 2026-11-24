@@ -173,6 +173,7 @@ function renderHabitHeader(head: HTMLElement, ctx: Ctx, store: Store, habit: Hab
 
   renderTargetSelect(head, ctx, store, habit);
   renderReminderInput(head, ctx, store, habit);
+  renderLangSelect(head, ctx, store, habit);
 
   const del = head.createEl("button", { cls: "ed-icon-btn ed-habit-del" });
   setIcon(del, "trash-2");
@@ -292,6 +293,24 @@ function renderReminderInput(parent: HTMLElement, ctx: Ctx, store: Store, habit:
       input.value = habit.reminderTime ?? "";
       return;
     }
+    ctx.refresh();
+  };
+}
+
+/** Link a habit to a Language-module language: studying it checks the habit off. */
+function renderLangSelect(parent: HTMLElement, ctx: Ctx, store: Store, habit: HabitItem) {
+  const { t, settings } = ctx;
+  const select = parent.createEl("select", { cls: "ed-habit-target ed-habit-lang" });
+  select.setAttr("aria-label", t.habitLinkedLang);
+  select.setAttr("title", t.habitLinkedLang);
+  select.createEl("option", { value: "", text: t.habitLinkedNone });
+  const langs = [...settings.vocabLanguages];
+  // Keep a link to a language that has since been removed visible, not silently blank.
+  if (habit.linkedLang && !langs.includes(habit.linkedLang)) langs.push(habit.linkedLang);
+  for (const l of langs) select.createEl("option", { value: l, text: `🔗 ${l}` });
+  select.value = habit.linkedLang ?? "";
+  select.onchange = async () => {
+    await updateHabit(store, habit.id, { linkedLang: select.value || null });
     ctx.refresh();
   };
 }

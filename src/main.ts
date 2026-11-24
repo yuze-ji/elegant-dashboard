@@ -452,7 +452,7 @@ export default class DashboardPlugin extends Plugin {
       // `targetPerWeek` postdates the first habits release; same gap-filling
       // reasoning as the deadline fields above.
       habits: ((raw?.habits as Partial<HabitItem>[] | undefined) || []).map(
-        (h) => ({ targetPerWeek: null, reminderTime: null, ...h }) as HabitItem
+        (h) => ({ targetPerWeek: null, reminderTime: null, linkedLang: null, ...h }) as HabitItem
       ),
       habitLog: { ...(raw?.habitLog || {}) },
       habitReminderFiredById: { ...(raw?.habitReminderFiredById || {}) },
